@@ -141,7 +141,6 @@ class _DetectorServer {
       final _Command command = message as _Command;
       await server._handleCommand(command);
     });
-    // receivePort.sendPort - used by UI isolate to send commands to the service receiverPort
     sendPort.send(_Command(_Codes.init, args: [receivePort.sendPort]));
   }
 

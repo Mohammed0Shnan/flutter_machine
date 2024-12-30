@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
+import 'package:f_m/state_managment/camera_cubit.dart';
+import 'package:f_m/state_managment/object_detect_state_managment.dart';
+import 'package:f_m/ui/object_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:f_m/ui/home_view.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const MyApp());
 }
-
+var detectBloc = ObjectDetectionCubit(cameraCubit: CameraCubit());
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -34,8 +38,6 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const HomeView(),
+        home:  ObjectSelectionScreen(),
       );
 }
-
-// update
