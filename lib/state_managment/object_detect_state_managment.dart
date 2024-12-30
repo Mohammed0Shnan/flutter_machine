@@ -1,42 +1,69 @@
 import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/recognition.dart';
 import 'camera_cubit.dart';  // Add the import for CameraCubit
 
-// Object Detection States
-abstract class ObjectDetectionState {}
-
-class ObjectDetectionInitial extends ObjectDetectionState {}
-
-class ObjectDetecting extends ObjectDetectionState {
-  final String objectName;
-  ObjectDetecting(this.objectName);
+enum ObjectDetectionStatus {
+  initial,
+  detecting,
+  inPosition,
+  notInPosition,
+  imageCaptured,
 }
 
-class ObjectInPosition extends ObjectDetectionState {}
+class ObjectDetectionState {
+  final ObjectDetectionStatus status;
+  final String? objectName;
+  final String? message;
+  final String? direction;
+  final CameraController? controller;
+  final File? capturedImage;
 
-class ObjectNotInPosition extends ObjectDetectionState {
-  final String message;
-  final String direction;  // Added direction property
-  ObjectNotInPosition(this.message, this.direction);  // Constructor now accepts direction
-}
+  ObjectDetectionState({
+    required this.status,
+    this.objectName,
+    this.message,
+    this.direction,
+    this.controller,
+    this.capturedImage,
+  });
 
-class ImageCaptured extends ObjectDetectionState {
-  final File capturedImage;
-  ImageCaptured(this.capturedImage);
+  ObjectDetectionState copyWith({
+    ObjectDetectionStatus? status,
+    String? objectName,
+    String? message,
+    String? direction,
+    CameraController? controller,
+    File? capturedImage,
+  }) {
+    return ObjectDetectionState(
+      status: status ?? this.status,
+      objectName: objectName ?? this.objectName,
+      message: message ?? this.message,
+      direction: direction ?? this.direction,
+      controller: controller ?? this.controller,
+      capturedImage: capturedImage ?? this.capturedImage,
+    );
+  }
 }
 
 // ObjectDetectionCubit
 class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
   final CameraCubit cameraCubit;
 
-  ObjectDetectionCubit({required this.cameraCubit}) : super(ObjectDetectionInitial()) {
+  ObjectDetectionCubit({required this.cameraCubit})
+      : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)) {
     // Listen to camera state updates
     cameraCubit.stream.listen((cameraState) {
       if (cameraState.state == CameraStateEnum.initialized) {
-        emit(ObjectDetecting("Initializing object detection..."));
+        emit(state.copyWith(
+          controller: cameraState.controller,
+        ));
       } else if (cameraState.state == CameraStateEnum.error) {
-        emit(ObjectDetectionInitial());  // Reset state on error
+        emit(state.copyWith(
+          controller: null,
+        ));
       }
     });
   }
@@ -44,30 +71,40 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
   // Handle object detection logic
   void detectObject(Recognition recognition) {
     if (_isObjectInPosition(recognition)) {
-      emit(ObjectInPosition());  // Object is in position
+      emit(state.copyWith(
+        status: ObjectDetectionStatus.inPosition,
+      ));
     } else {
+      print('000000000000000000000000000000000000000');
+      print(recognition);
       String direction = _getDirection(recognition);
-      emit(ObjectNotInPosition("Move closer or farther", direction));  // Object not in position
+      emit(state.copyWith(
+        status: ObjectDetectionStatus.notInPosition,
+        message: "Move closer or farther",
+        direction: direction,
+      ));
     }
   }
 
-  // When no object is detected
   void objectNotDetected() {
-    emit(ObjectDetecting("Detecting object..."));
+    emit(state.copyWith(
+      status: ObjectDetectionStatus.detecting,
+      objectName: "Detecting object...",
+    ));
   }
 
-  // Capture image
   Future<void> captureImage() async {
     final capturedImage = await _captureImage();
-    emit(ImageCaptured(capturedImage));
+    emit(state.copyWith(
+      status: ObjectDetectionStatus.imageCaptured,
+      capturedImage: capturedImage,
+    ));
   }
 
-  // Helper method to check if object is in position
   bool _isObjectInPosition(Recognition recognition) {
     return recognition.score > 0.5;  // The object is considered in position if the recognition score is greater than 0.5
   }
 
-  // Determine direction for guidance
   String _getDirection(Recognition recognition) {
     if (recognition.score < 0.3) {
       return "closer";  // The object is too far away, ask the user to move closer
@@ -78,7 +115,6 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
     }
   }
 
-  // Simulate image capture process
   Future<File> _captureImage() async {
     // Simulating an image capture process
     return File('path_to_image');  // Replace with actual image capture logic
