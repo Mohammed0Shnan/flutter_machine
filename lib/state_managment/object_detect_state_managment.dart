@@ -102,13 +102,13 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
   }
 
   bool _isObjectInPosition(Recognition recognition) {
-    return recognition.score > 0.5;  // The object is considered in position if the recognition score is greater than 0.5
+    return recognition.score > 0.9;  // The object is considered in position if the recognition score is greater than 0.5
   }
 
   String _getDirection(Recognition recognition) {
-    if (recognition.score < 0.3) {
+    if (recognition.score < 0.6) {
       return "closer";  // The object is too far away, ask the user to move closer
-    } else if (recognition.score > 0.7) {
+    } else if (recognition.score > 0.8) {
       return "farther";  // The object is too close, ask the user to move farther
     } else {
       return "center";  // The object is in an ideal position (centered)

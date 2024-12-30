@@ -134,10 +134,6 @@ class _DetectorWidgetState extends State<DetectorWidget>
             child: CameraPreview(_cameraController!),
           ),
           // _statsWidget(),
-          AspectRatio(
-            aspectRatio: aspect,
-            child: _buildBoundingBoxes(context),
-          ),
 
           Positioned(
             bottom: 350,
@@ -179,7 +175,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
   Widget _buildBoundingBoxes(BuildContext context) {
     if (results == null) return const SizedBox.shrink();
     print(results);
-    final filteredResults = results!.where((box) => box.label == 'mouse').toList();
+    final filteredResults = results!.where((box) => box.label == widget.selectedObject).toList();
     if (filteredResults.isNotEmpty) {
       detectBloc.detectObject(filteredResults.first);
     } else {
