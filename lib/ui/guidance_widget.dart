@@ -40,20 +40,15 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    var aspect = 1 / _cameraController!.value.aspectRatio;
 
     return Column(
       children: [
-        AspectRatio(
-          aspectRatio: aspect,
-          child: _buildBoundingBoxes(context),
-        ),
-
         _buildGuidanceMessage(_guidanceMessage),
         Container(
           color: Colors.black,
           padding: EdgeInsets.all(5),
-          child: BlocBuilder<ObjectDetectionCubit, ObjectDetectionState>(
+          child: BlocBuilder
+          <ObjectDetectionCubit, ObjectDetectionState>(
             bloc: detectBloc,
             builder: (context, state) {
               if (state.controller == null) {
@@ -78,6 +73,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
       ],
     );
   }
+
 
   void _updateArrowDirection(String direction) {
     Offset begin = Offset.zero;

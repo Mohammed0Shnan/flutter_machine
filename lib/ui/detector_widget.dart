@@ -55,9 +55,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
   }
 
   void _initStateAsync() async {
-    // initialize preview and CameraImage stream
     _initializeCamera();
-    // Spawn a new isolate
     Detector.start().then((instance) {
       setState(() {
         _detector = instance;
@@ -111,7 +109,6 @@ class _DetectorWidgetState extends State<DetectorWidget>
       ScreenParams.previewSize = _cameraController!.value.previewSize!;
       setState(() {});
     }
-
     );
   }
 
@@ -133,8 +130,10 @@ class _DetectorWidgetState extends State<DetectorWidget>
             aspectRatio: aspect,
             child: CameraPreview(_cameraController!),
           ),
-          // _statsWidget(),
-
+          AspectRatio(
+            aspectRatio: aspect,
+            child: _buildBoundingBoxes(context),
+          ),
           Positioned(
             bottom: 350,
             left: 0,
@@ -172,7 +171,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
       : const SizedBox.shrink();
 
   /// Returns Stack of bounding boxes
-  Widget _buildBoundingBoxes(BuildContext context) {
+  Widget _buildBoundingBoxes(BuildContext context ,) {
     if (results == null) return const SizedBox.shrink();
     print(results);
     final filteredResults = results!.where((box) => box.label == widget.selectedObject).toList();

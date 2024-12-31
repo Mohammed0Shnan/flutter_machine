@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:camera/camera.dart';
+import 'package:f_m/models/screen_params.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/recognition.dart';
 import 'camera_cubit.dart';  // Add the import for CameraCubit
@@ -106,14 +108,40 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
   }
 
   String _getDirection(Recognition recognition) {
-    if (recognition.score < 0.6) {
-      return "closer";  // The object is too far away, ask the user to move closer
-    } else if (recognition.score > 0.8) {
-      return "farther";  // The object is too close, ask the user to move farther
-    } else {
-      return "center";  // The object is in an ideal position (centered)
+    // Access the bounding box (location)
+    final Rect location = recognition.location;
+
+    // Get the object's center x-coordinate
+    final double objectCenterX = location.left + (location.width / 2);
+
+    // Define frame width based on ScreenParams
+    final double frameWidth = ScreenParams.screenPreviewSize.width;
+
+    // Define thresholds for regions
+    const double leftThresholdFactor = 0.33; // Left region ends at 33% of the frame
+    const double rightThresholdFactor = 0.66; // Right region starts at 66% of the frame
+
+    final double leftThreshold = frameWidth * leftThresholdFactor;
+    final double rightThreshold = frameWidth * rightThresholdFactor;
+
+    // Determine horizontal position
+    if (objectCenterX < leftThreshold) {
+      return "right"; // Object is on the left, move right
+    } else if (objectCenterX > rightThreshold) {
+      return "left"; // Object is on the right, move left
     }
+
+    // Determine proximity based on score
+    if (recognition.score < 0.6) {
+      return "closer"; // Object is too far
+    } else if (recognition.score > 0.8) {
+      return "farther"; // Object is too close
+    }
+
+    return "center"; // Object is in an ideal position
   }
+
+
 
   Future<File> _captureImage() async {
     // Simulating an image capture process
