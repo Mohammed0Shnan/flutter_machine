@@ -129,7 +129,7 @@ class _DetectorServer {
   static const int mlModelInputSize = 300;
 
   /// Result confidence threshold
-  static const double confidence = 0.5;
+  static const double confidence = 0.3;
   Interpreter? _interpreter;
   List<String>? _labels;
 

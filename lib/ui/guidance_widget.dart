@@ -100,6 +100,11 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
         begin = Offset.zero;
         end = Offset.zero;
         break;
+      case DirectionStatus.unknown:
+        begin = Offset.zero;
+        end = Offset.zero;
+        break;
+
     }
 
     _arrowAnimation = Tween<Offset>(begin: begin, end: end).animate(

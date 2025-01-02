@@ -18,7 +18,8 @@ enum DirectionStatus {
   right,
   closer,
   farther,
-  center,
+  center,unknown
+
 }
 
 class ObjectDetectionState {
@@ -106,7 +107,42 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
     return recognition.score > 0.9;
   }
 
-  Map<String,dynamic> _getDirection(Recognition recognition) {
+  // Map<String,dynamic> _getDirection(Recognition recognition) {
+  //   // Access the bounding box (location)
+  //   final Rect location = recognition.location;
+  //
+  //   // Get the object's center x-coordinate
+  //   final double objectCenterX = location.left + (location.width / 2);
+  //
+  //   // Define frame width based on ScreenParams
+  //   final double frameWidth = ScreenParams.screenPreviewSize.width;
+  //
+  //   // Define thresholds for regions
+  //   const double leftThresholdFactor = 0.33;
+  //   const double rightThresholdFactor = 0.66;
+  //
+  //   final double leftThreshold = frameWidth * leftThresholdFactor;
+  //   final double rightThreshold = frameWidth * rightThresholdFactor;
+  //   print('===================> ${leftThreshold} <=======================');
+  //   print('===================> ${rightThreshold} <=======================');
+  //   print('===================> ${rightThreshold} <=======================');
+  //   if (recognition.score > 0.8) {
+  //     return {'message':'Move farther','direction':DirectionStatus.farther };
+  //   }
+  //  else if (recognition.score < 0.8 && recognition.score > 0.66 ) {
+  //     return {'message':'Move closer','direction':DirectionStatus.closer };
+  //   }
+  //  else if (objectCenterX > leftThreshold) {
+  //     return {'message':'Move right','direction':DirectionStatus.right };
+  //   } else if (objectCenterX < rightThreshold) {
+  //     return {'message':'Move left','direction':DirectionStatus.left };
+  //   }
+  //
+  //   return {'message':'Move center','direction':DirectionStatus.center };
+  //
+  // }
+
+  Map<String, dynamic> _getDirection(Recognition recognition) {
     // Access the bounding box (location)
     final Rect location = recognition.location;
 
@@ -122,21 +158,31 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
 
     final double leftThreshold = frameWidth * leftThresholdFactor;
     final double rightThreshold = frameWidth * rightThresholdFactor;
-    print('===================> ${leftThreshold} <=======================');
-    print('===================> ${rightThreshold} <=======================');
 
-    if (objectCenterX < leftThreshold) {
-      return {'message':'Move right','direction':DirectionStatus.right };
+    // Define a center tolerance (range considered "center")
+    const double centerToleranceFactor = 0.1;
+    final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
+    final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
+
+    // Include distance-related logic using bounding box size
+    const double fartherThreshold = 0.1; // Smaller objects are farther away
+    const double closerThreshold = 0.3; // Larger objects are closer
+
+    final double objectSizeFactor = location.width / frameWidth;
+
+    if (recognition.score > 0.8 && objectSizeFactor < fartherThreshold) {
+      return {'message': 'Move farther', 'direction': DirectionStatus.farther};
+    } else if (recognition.score > 0.66 && objectSizeFactor > closerThreshold) {
+      return {'message': 'Move closer', 'direction': DirectionStatus.closer};
+    } else if (objectCenterX >= centerLeft && objectCenterX <= centerRight) {
+      return {'message': 'Object is centered', 'direction': DirectionStatus.center};
+    } else if (objectCenterX < leftThreshold) {
+      return {'message': 'Move left', 'direction': DirectionStatus.left};
     } else if (objectCenterX > rightThreshold) {
-      return {'message':'Move left','direction':DirectionStatus.left };
+      return {'message': 'Move right', 'direction': DirectionStatus.right};
     }
-    if (recognition.score < 0.6) {
-      return {'message':'Move closer','direction':DirectionStatus.closer };
-    } else if (recognition.score > 0.8) {
-      return {'message':'Move farther','direction':DirectionStatus.farther };
-    }
-    return {'message':'Move center','direction':DirectionStatus.center };
 
+    return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
   }
 
 

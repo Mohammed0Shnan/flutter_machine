@@ -32,6 +32,8 @@ class _DetectorWidgetState extends State<DetectorWidget>
   /// Controller
   CameraController? _cameraController;
 
+  // use only when initialized, so - not null
+  get _controller => _cameraController;
 
   /// Object Detector is running on a background [Isolate]. This is nullable
   /// because acquiring a [Detector] is an asynchronous operation. This
@@ -53,8 +55,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
   }
 
   void _initStateAsync() async {
-   await  _initializeCamera();
-
+    _initializeCamera();
     Detector.start().then((instance) {
       setState(() {
         _detector = instance;
@@ -67,52 +68,44 @@ class _DetectorWidgetState extends State<DetectorWidget>
       });
     });
   }
-
-  /// Initializes the camera by setting [_cameraController]
+  void _initializeCamera() async {
+    cameras = await availableCameras();
+    // cameras[0] for back-camera
+    _cameraController = CameraController(
+      cameras[0],
+      ResolutionPreset.low,
+      enableAudio: false,
+    )..initialize().then((_) async {
+          detectBloc.cameraCubit.initializeCamera(_cameraController);
+          await _cameraController!.startImageStream(onLatestImageAvailable);
+          ScreenParams.previewSize = _cameraController!.value.previewSize!;
+          setState(() {});
+      });
+  }
   // void _initializeCamera() async {
   //   cameras = await availableCameras();
-  //   // cameras[0] for back-camera
+  //   final frontCameraIndex = cameras.indexWhere(
+  //         (camera) => camera.lensDirection == CameraLensDirection.front,
+  //   );
+  //
+  //   if (frontCameraIndex == -1) {
+  //     print("No front camera found!");
+  //     return;
+  //   }
+  //
+  //   // Use the front camera
   //   _cameraController = CameraController(
-  //     cameras[0],
+  //     cameras[frontCameraIndex],
   //     ResolutionPreset.low,
   //     enableAudio: false,
   //   )..initialize().then((_) async {
-  //       await _controller.startImageStream(onLatestImageAvailable);
-  //       setState(() {});
-  //
-  //       /// previewSize is size of each image frame captured by controller
-  //       ///
-  //       /// 352x288 on iOS, 240p (320x240) on Android with ResolutionPreset.low
-  //       ScreenParams.previewSize = _controller.value.previewSize!;
-  //     });
+  //     detectBloc.cameraCubit.initializeCamera(_cameraController);
+  //     await _cameraController!.startImageStream(onLatestImageAvailable);
+  //     ScreenParams.previewSize = _cameraController!.value.previewSize!;
+  //     setState(() {});
+  //   }
+  //   );
   // }
-  Future<void> _initializeCamera() async {
-    cameras = await availableCameras();
-    final frontCameraIndex = cameras.indexWhere(
-          (camera) => camera.lensDirection == CameraLensDirection.front,
-    );
-
-    if (frontCameraIndex == -1) {
-      print("No front camera found!");
-      return;
-    }
-
-    // Use the front camera
-    _cameraController =  CameraController(
-      cameras[frontCameraIndex],
-      ResolutionPreset.low,
-      enableAudio: false,
-    );
-    await _cameraController?.initialize();
-    ScreenParams.previewSize = _cameraController!.value.previewSize!;
-    Detector.screenSize = ScreenParams.previewSize;
-    detectBloc.cameraCubit.initializeCamera(_cameraController);
-    await _cameraController!.startImageStream(onLatestImageAvailable);
-
-    setState(() {});
-
-
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,8 +158,8 @@ class _DetectorWidgetState extends State<DetectorWidget>
           mainAxisSize: MainAxisSize.min,
           children: stats!.entries
               .map((e) => SizedBox(height: 40,width:double.infinity, child: Row(children: [Text("${e.key}  ",style: TextStyle(fontSize: 20,fontWeight: FontWeight.w700),) ,Text(e.value,style: TextStyle(fontSize: 20,fontWeight: FontWeight.w700 ,color: Colors.red),)],),))
-      .toList(),
-  ),
+              .toList(),
+        ),
       ),
     ),
   )
@@ -175,8 +168,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
   /// Returns Stack of bounding boxes
   Widget _buildBoundingBoxes(BuildContext context ,) {
     if (results == null) return const SizedBox.shrink();
-    print(results);
-    final filteredResults = results!.where((box) => box.label == widget.selectedObject).toList();
+    final filteredResults = results!.where((box) => box.label.trim() == 'mouse').toList();
     if (filteredResults.isNotEmpty) {
       detectBloc.detectObject(filteredResults.first);
     } else {
