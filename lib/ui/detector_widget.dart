@@ -32,8 +32,6 @@ class _DetectorWidgetState extends State<DetectorWidget>
   /// Controller
   CameraController? _cameraController;
 
-  // use only when initialized, so - not null
-  get _controller => _cameraController;
 
   /// Object Detector is running on a background [Isolate]. This is nullable
   /// because acquiring a [Detector] is an asynchronous operation. This
@@ -55,7 +53,8 @@ class _DetectorWidgetState extends State<DetectorWidget>
   }
 
   void _initStateAsync() async {
-    _initializeCamera();
+   await  _initializeCamera();
+
     Detector.start().then((instance) {
       setState(() {
         _detector = instance;
@@ -87,7 +86,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
   //       ScreenParams.previewSize = _controller.value.previewSize!;
   //     });
   // }
-  void _initializeCamera() async {
+  Future<void> _initializeCamera() async {
     cameras = await availableCameras();
     final frontCameraIndex = cameras.indexWhere(
           (camera) => camera.lensDirection == CameraLensDirection.front,
@@ -99,17 +98,20 @@ class _DetectorWidgetState extends State<DetectorWidget>
     }
 
     // Use the front camera
-    _cameraController = CameraController(
+    _cameraController =  CameraController(
       cameras[frontCameraIndex],
       ResolutionPreset.low,
       enableAudio: false,
-    )..initialize().then((_) async {
-      detectBloc.cameraCubit.initializeCamera(_cameraController);
-      await _cameraController!.startImageStream(onLatestImageAvailable);
-      ScreenParams.previewSize = _cameraController!.value.previewSize!;
-      setState(() {});
-    }
     );
+    await _cameraController?.initialize();
+    ScreenParams.previewSize = _cameraController!.value.previewSize!;
+    Detector.screenSize = ScreenParams.previewSize;
+    detectBloc.cameraCubit.initializeCamera(_cameraController);
+    await _cameraController!.startImageStream(onLatestImageAvailable);
+
+    setState(() {});
+
+
   }
 
   @override
@@ -178,7 +180,7 @@ class _DetectorWidgetState extends State<DetectorWidget>
     if (filteredResults.isNotEmpty) {
       detectBloc.detectObject(filteredResults.first);
     } else {
-      detectBloc.objectNotDetected();
+      detectBloc.objectNotDetected(widget.selectedObject);
     }
     return Stack(
       children: filteredResults.map((box) => BoxWidget(result: box)).toList(),

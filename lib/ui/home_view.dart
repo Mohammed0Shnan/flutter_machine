@@ -7,7 +7,7 @@ import 'package:f_m/ui/detector_widget.dart';
 class HomeView extends StatelessWidget {
   final String selectedObject;
 
-  const HomeView({Key? key, required this.selectedObject}) : super(key: key);
+  const HomeView({super.key, required this.selectedObject});
 
   @override
   Widget build(BuildContext context) {

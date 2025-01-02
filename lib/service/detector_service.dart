@@ -4,12 +4,15 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 import 'package:f_m/models/recognition.dart';
 import 'package:f_m/utils/image_utils.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
+
+import '../models/screen_params.dart';
 
 enum _Codes {
   init,
@@ -27,6 +30,7 @@ class _Command {
 }
 
 class Detector {
+  static late var screenSize;
   static const String _modelPath = 'assets/models/ssd_mobilenet.tflite';
   static const String _labelPath = 'assets/models/ssd_mobilenet.txt';
 
@@ -177,6 +181,7 @@ class _DetectorServer {
       }
     });
   }
+
 
   Map<String, dynamic> analyseImage(
       image_lib.Image? image, int preConversionTime) {

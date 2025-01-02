@@ -56,13 +56,13 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
               }
 
               if (state.status == ObjectDetectionStatus.detecting) {
-                _guidanceMessage = "Detecting ${state.objectName}...";
+                _guidanceMessage = state.objectName??'...';
               } else if (state.status == ObjectDetectionStatus.notInPosition) {
                 _guidanceMessage = state.message ?? "Adjust position...";
-                _updateArrowDirection(state.direction ?? "center");
+                _updateArrowDirection(state.direction!);
               } else if (state.status == ObjectDetectionStatus.inPosition) {
-                _guidanceMessage = "Object in position!";
-                _updateArrowDirection("center");
+                _guidanceMessage = state.message??'';
+                _updateArrowDirection(state.direction!);
                 // _captureImage(state.controller!);
               }
 
@@ -75,25 +75,45 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
   }
 
 
-  void _updateArrowDirection(String direction) {
+  void _updateArrowDirection(DirectionStatus direction) {
     Offset begin = Offset.zero;
     Offset end = Offset.zero;
 
-    if (direction == "closer") {
-      begin = Offset(0, -0.5);
-      end = Offset(0, -0.5);
-    } else if (direction == "farther") {
-      begin = Offset(0, 0.5);
-      end = Offset(0, 0.5);
+    switch (direction) {
+      case DirectionStatus.closer:
+        begin = Offset(0, -0.5);
+        end = Offset(0, -1.0);
+        break;
+      case DirectionStatus.farther:
+        begin = Offset(0, 0.5);
+        end = Offset(0, 1.0);
+        break;
+      case DirectionStatus.left:
+        begin = Offset(-0.5, 0);
+        end = Offset(-1.0, 0);
+        break;
+      case DirectionStatus.right:
+        begin = Offset(0.5, 0);
+        end = Offset(1.0, 0);
+        break;
+      case DirectionStatus.center:
+        begin = Offset.zero;
+        end = Offset.zero;
+        break;
     }
-
 
     _arrowAnimation = Tween<Offset>(begin: begin, end: end).animate(
       CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
     );
-    _arrowController.repeat();
 
+    if (direction != DirectionStatus.center) {
+      _arrowController.repeat(reverse: true); // Ensures a smooth back-and-forth animation
+    } else {
+      _arrowController.stop();
+      _arrowController.reset(); // Resets to initial position when in the center
+    }
   }
+
 
   Future<void> _captureImage(CameraController controller) async {
     try {

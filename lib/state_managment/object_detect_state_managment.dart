@@ -13,12 +13,19 @@ enum ObjectDetectionStatus {
   notInPosition,
   imageCaptured,
 }
+enum DirectionStatus {
+  left,
+  right,
+  closer,
+  farther,
+  center,
+}
 
 class ObjectDetectionState {
   final ObjectDetectionStatus status;
   final String? objectName;
   final String? message;
-  final String? direction;
+  final DirectionStatus? direction;
   final CameraController? controller;
   final File? capturedImage;
 
@@ -35,7 +42,7 @@ class ObjectDetectionState {
     ObjectDetectionStatus? status,
     String? objectName,
     String? message,
-    String? direction,
+    DirectionStatus? direction,
     CameraController? controller,
     File? capturedImage,
   }) {
@@ -75,39 +82,31 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
     if (_isObjectInPosition(recognition)) {
       emit(state.copyWith(
         status: ObjectDetectionStatus.inPosition,
+        message: "Object in position!"
       ));
     } else {
-      print('000000000000000000000000000000000000000');
-      print(recognition);
-      String direction = _getDirection(recognition);
+      Map<String , dynamic> direction = _getDirection(recognition);
       emit(state.copyWith(
         status: ObjectDetectionStatus.notInPosition,
-        message: "Move closer or farther",
-        direction: direction,
+        message: direction['message'],
+        direction: direction['direction'],
       ));
     }
   }
 
-  void objectNotDetected() {
+  void objectNotDetected(String objectName) {
     emit(state.copyWith(
       status: ObjectDetectionStatus.detecting,
-      objectName: "Detecting object...",
+      objectName: "Detecting $objectName...",
     ));
   }
 
-  Future<void> captureImage() async {
-    final capturedImage = await _captureImage();
-    emit(state.copyWith(
-      status: ObjectDetectionStatus.imageCaptured,
-      capturedImage: capturedImage,
-    ));
-  }
 
   bool _isObjectInPosition(Recognition recognition) {
-    return recognition.score > 0.9;  // The object is considered in position if the recognition score is greater than 0.5
+    return recognition.score > 0.9;
   }
 
-  String _getDirection(Recognition recognition) {
+  Map<String,dynamic> _getDirection(Recognition recognition) {
     // Access the bounding box (location)
     final Rect location = recognition.location;
 
@@ -118,33 +117,28 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
     final double frameWidth = ScreenParams.screenPreviewSize.width;
 
     // Define thresholds for regions
-    const double leftThresholdFactor = 0.33; // Left region ends at 33% of the frame
-    const double rightThresholdFactor = 0.66; // Right region starts at 66% of the frame
+    const double leftThresholdFactor = 0.33;
+    const double rightThresholdFactor = 0.66;
 
     final double leftThreshold = frameWidth * leftThresholdFactor;
     final double rightThreshold = frameWidth * rightThresholdFactor;
+    print('===================> ${leftThreshold} <=======================');
+    print('===================> ${rightThreshold} <=======================');
 
-    // Determine horizontal position
     if (objectCenterX < leftThreshold) {
-      return "right"; // Object is on the left, move right
+      return {'message':'Move right','direction':DirectionStatus.right };
     } else if (objectCenterX > rightThreshold) {
-      return "left"; // Object is on the right, move left
+      return {'message':'Move left','direction':DirectionStatus.left };
     }
-
-    // Determine proximity based on score
     if (recognition.score < 0.6) {
-      return "closer"; // Object is too far
+      return {'message':'Move closer','direction':DirectionStatus.closer };
     } else if (recognition.score > 0.8) {
-      return "farther"; // Object is too close
+      return {'message':'Move farther','direction':DirectionStatus.farther };
     }
+    return {'message':'Move center','direction':DirectionStatus.center };
 
-    return "center"; // Object is in an ideal position
   }
 
 
 
-  Future<File> _captureImage() async {
-    // Simulating an image capture process
-    return File('path_to_image');  // Replace with actual image capture logic
-  }
 }
