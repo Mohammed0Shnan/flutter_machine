@@ -1,28 +1,66 @@
 
-import 'package:f_m/state_managment/camera_cubit.dart';
-import 'package:f_m/state_managment/object_detect_state_managment.dart';
-import 'package:f_m/ui/object_selection_screen.dart';
+import 'package:f_m/di/components/app.component.dart';
+import 'package:f_m/module_detection/bloc/object_detect_state_managment.dart';
+import 'package:f_m/module_detection/detection_module.dart';
+import 'package:f_m/module_splash/splash_module.dart';
+import 'package:f_m/module_splash/splash_routes.dart';
+import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(const MyApp());
+  final container = await AppComponent.create();
+  return runApp(container.app);
+
+
 }
 var detectBloc = ObjectDetectionCubit(cameraCubit: CameraCubit());
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+
+  final SplashModule _splashModule;
+  final DetectionModule _detectionModule;
+  MyApp(this._splashModule,this._detectionModule
+  );
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Live Object Detection TFLite',
-        debugShowCheckedModeBanner:
-    false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-        ),
-        home:  ObjectSelectionScreen(),
-      );
+  State<MyApp> createState() => _MyAppState();
 }
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+  }
+  @override
+  Widget build(BuildContext context) {
+    Map<String, WidgetBuilder> routes = {};
+    routes.addAll(widget._splashModule.getRoutes());
+    routes.addAll(widget._detectionModule.getRoutes());
+
+    return FutureBuilder<Widget>(
+      initialData: Container(color: Colors.green),
+      future: configuratedApp(routes),
+      builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
+        return snapshot.data!;
+      },
+    );
+  }
+
+  Future<Widget> configuratedApp(Map<String, WidgetBuilder> routes) async {
+    return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Object Detection',
+        routes: routes,
+
+        initialRoute: SplashRoutes.SPLASH_SCREEN
+    );
+  }
+  @override
+  void dispose() {
+    super.dispose();
+  }
+}
+
+

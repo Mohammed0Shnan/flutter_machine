@@ -1,7 +1,7 @@
-import 'package:f_m/ui/home_view.dart';
+import 'package:f_m/module_detection/screen/home_screen.dart';
 import 'package:flutter/material.dart';
 
-import '../models/screen_params.dart';
+import '../../models/screen_params.dart';
 class ObjectSelectionScreen extends StatelessWidget {
   final Map<String, String> objects = {
     'Mobile': 'cell phone',
@@ -14,7 +14,6 @@ class ObjectSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ScreenParams.screenSize = MediaQuery.sizeOf(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('Select Object for Detection'),
