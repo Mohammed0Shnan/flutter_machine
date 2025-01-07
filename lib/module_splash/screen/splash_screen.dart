@@ -1,5 +1,6 @@
 
 import 'package:f_m/models/screen_params.dart';
+import 'package:f_m/module_detection/detection_routes.dart';
 import 'package:f_m/module_splash/bloc/splash_bloc.dart';
 import 'package:f_m/module_detection/screen/object_selection_screen.dart';
 import 'package:flutter/material.dart';
@@ -21,12 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
        WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getNextRoute().then((route) async{
         await Future.delayed(Duration(seconds: 1));
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => ObjectSelectionScreen()),
-              (Route<dynamic> route) => false,
-        );
-        // Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, route ,(r)=> false);
       });
     });
   }
@@ -46,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<String> _getNextRoute() async {
     await Future.delayed(Duration(seconds: 1));
-    return '';
+    return DetectionRoutes.SELECTION_SCREEN;
   }
 
 }

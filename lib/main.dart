@@ -1,10 +1,8 @@
 
 import 'package:f_m/di/components/app.component.dart';
-import 'package:f_m/module_detection/bloc/object_detect_state_managment.dart';
 import 'package:f_m/module_detection/detection_module.dart';
 import 'package:f_m/module_splash/splash_module.dart';
 import 'package:f_m/module_splash/splash_routes.dart';
-import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -16,12 +14,12 @@ void main() async {
 
 
 }
-var detectBloc = ObjectDetectionCubit(cameraCubit: CameraCubit());
+
 class MyApp extends StatefulWidget {
 
   final SplashModule _splashModule;
   final DetectionModule _detectionModule;
-  MyApp(this._splashModule,this._detectionModule
+   const MyApp(this._splashModule,this._detectionModule, {super.key}
   );
 
   @override
@@ -53,7 +51,6 @@ class _MyAppState extends State<MyApp> {
         debugShowCheckedModeBanner: false,
         title: 'Object Detection',
         routes: routes,
-
         initialRoute: SplashRoutes.SPLASH_SCREEN
     );
   }

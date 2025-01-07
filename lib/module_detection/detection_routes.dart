@@ -1,3 +1,3 @@
 class DetectionRoutes {
-  static const DETECTOR_SCREEN = '/splash';
+  static const SELECTION_SCREEN = '/selection';
 }

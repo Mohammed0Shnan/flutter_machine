@@ -19,7 +19,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
   String _guidanceMessage = "";
   late double _rotationAngle;
 
-
+  late ObjectDetectionCubit detectBloc;
   @override
   void initState() {
     super.initState();
@@ -33,6 +33,8 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
       });
     });
     _arrowController.repeat(reverse: true);
+
+
   }
 
   @override
@@ -46,7 +48,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
           padding: EdgeInsets.all(5),
           child: BlocBuilder
           <ObjectDetectionCubit, ObjectDetectionState>(
-            bloc: detectBloc,
+            bloc: context.read<ObjectDetectionCubit>(),
             builder: (context, state) {
               if (state.controller == null) {
                 return const CircularProgressIndicator();

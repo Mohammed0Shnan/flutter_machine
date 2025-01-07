@@ -9,8 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:f_m/models/recognition.dart';
 import 'package:f_m/models/screen_params.dart';
 import 'package:f_m/module_detection/widgets/box_widget.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../main.dart';
+import '../bloc/object_detect_state_managment.dart';
 
 /// [DetectorWidget] sends each frame for inference
 class DetectorScreen extends StatefulWidget {
@@ -31,7 +32,6 @@ class _DetectorScreenState extends State<DetectorScreen>
   CameraController? _cameraController;
 
   // use only when initialized, so - not null
-  get _controller => _cameraController;
 
   /// Object Detector is running on a background [Isolate]. This is nullable
   /// because acquiring a [Detector] is an asynchronous operation. This
@@ -44,12 +44,18 @@ class _DetectorScreenState extends State<DetectorScreen>
 
   /// Realtime stats
   Map<String, String>? stats;
-
+  late ObjectDetectionCubit  detectBloc;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initStateAsync();
+    WidgetsBinding.instance.addPostFrameCallback((c){
+      if(mounted){
+        detectBloc =  context.read<ObjectDetectionCubit>();
+        _initStateAsync();
+      }
+    });
+
   }
 
   void _initStateAsync() async {
@@ -66,44 +72,44 @@ class _DetectorScreenState extends State<DetectorScreen>
       });
     });
   }
-  void _initializeCamera() async {
-    cameras = await availableCameras();
-    // cameras[0] for back-camera
-    _cameraController = CameraController(
-      cameras[0],
-      ResolutionPreset.low,
-      enableAudio: false,
-    )..initialize().then((_) async {
-          detectBloc.cameraCubit.initializeCamera(_cameraController);
-          await _cameraController!.startImageStream(onLatestImageAvailable);
-          ScreenParams.previewSize = _cameraController!.value.previewSize!;
-          setState(() {});
-      });
-  }
   // void _initializeCamera() async {
   //   cameras = await availableCameras();
-  //   final frontCameraIndex = cameras.indexWhere(
-  //         (camera) => camera.lensDirection == CameraLensDirection.front,
-  //   );
-  //
-  //   if (frontCameraIndex == -1) {
-  //     print("No front camera found!");
-  //     return;
-  //   }
-  //
-  //   // Use the front camera
+  //   // cameras[0] for back-camera
   //   _cameraController = CameraController(
-  //     cameras[frontCameraIndex],
+  //     cameras[0],
   //     ResolutionPreset.low,
   //     enableAudio: false,
   //   )..initialize().then((_) async {
-  //     detectBloc.cameraCubit.initializeCamera(_cameraController);
-  //     await _cameraController!.startImageStream(onLatestImageAvailable);
-  //     ScreenParams.previewSize = _cameraController!.value.previewSize!;
-  //     setState(() {});
-  //   }
-  //   );
+  //         detectBloc.cameraCubit.initializeCamera(_cameraController);
+  //         await _cameraController!.startImageStream(onLatestImageAvailable);
+  //         ScreenParams.previewSize = _cameraController!.value.previewSize!;
+  //         setState(() {});
+  //     });
   // }
+  void _initializeCamera() async {
+    cameras = await availableCameras();
+    final frontCameraIndex = cameras.indexWhere(
+          (camera) => camera.lensDirection == CameraLensDirection.front,
+    );
+
+    if (frontCameraIndex == -1) {
+      print("No front camera found!");
+      return;
+    }
+
+    // Use the front camera
+    _cameraController = CameraController(
+      cameras[frontCameraIndex],
+      ResolutionPreset.low,
+      enableAudio: false,
+    )..initialize().then((_) async {
+      detectBloc.cameraCubit.initializeCamera(_cameraController);
+      await _cameraController!.startImageStream(onLatestImageAvailable);
+      ScreenParams.previewSize = _cameraController!.value.previewSize!;
+      setState(() {});
+    }
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

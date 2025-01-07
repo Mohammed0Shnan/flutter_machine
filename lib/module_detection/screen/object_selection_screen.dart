@@ -1,17 +1,20 @@
+import 'package:f_m/module_detection/bloc/object_detect_state_managment.dart';
 import 'package:f_m/module_detection/screen/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../models/screen_params.dart';
+
 class ObjectSelectionScreen extends StatelessWidget {
+
+  final ObjectDetectionCubit bloc;
+  ObjectSelectionScreen({super.key,required this.bloc});
+
   final Map<String, String> objects = {
     'Mobile': 'cell phone',
     'Laptop': 'laptop',
     'Mouse': 'mouse',
     'Bottle': 'bottle',
   };
-
-   ObjectSelectionScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,8 +40,11 @@ class ObjectSelectionScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => HomeView(
-                              selectedObject: objects.values.toList()[index],
+                            builder: (context) => BlocProvider.value(
+                              value: bloc,
+                              child: HomeView(
+                                selectedObject: objects.values.toList()[index],
+                              ),
                             ),
                           ),
                         );
