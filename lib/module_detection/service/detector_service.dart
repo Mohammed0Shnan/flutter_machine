@@ -8,7 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
-import 'package:f_m/models/recognition.dart';
+import 'package:f_m/module_detection/models/recognition.dart';
 import 'package:f_m/utils/image_utils.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 

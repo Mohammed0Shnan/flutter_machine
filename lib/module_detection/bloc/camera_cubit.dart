@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../models/recognition.dart';
+
+import 'mediation_bloc.dart';
 
 enum CameraStateEnum {
   initial,
@@ -36,16 +37,27 @@ class CameraState {
   }
 }
 // CameraCubit
-class CameraCubit extends Cubit<CameraState> {
-  CameraCubit() : super(CameraState(state: CameraStateEnum.initial));
+class CameraCubit extends Cubit<CameraState> implements DetectionBaseBloc{
+  final String flag = 'camera_cubit';
+  final Mediator mediator;
+  CameraCubit({required this.mediator}) : super(CameraState(state: CameraStateEnum.initial));
 
   Future<void> initializeCamera(CameraController? controller) async {
     emit(state.copyWith( state: CameraStateEnum.loading));
     if (controller == null) {
       emit(state.copyWith( state: CameraStateEnum.error, errorMessage: "No cameras available"));
     } else {
-
       emit(state.copyWith(  state: CameraStateEnum.initialized, controller: controller));
     }
   }
+
+  @override
+  String getFlag() => flag;
+
+  @override
+  void handleEvent(String event, Object? data) {
+    // TODO: implement handleEvent
+  }
+
+
 }

@@ -1,7 +1,8 @@
 import 'package:f_m/di/components/app.component.dart';
 import 'package:f_m/main.dart';
 import 'package:f_m/module_detection/bloc/camera_cubit.dart';
-import 'package:f_m/module_detection/bloc/object_detect_state_managment.dart';
+import 'package:f_m/module_detection/bloc/mediation_bloc.dart';
+import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/detection_module.dart';
 import 'package:f_m/module_detection/screen/object_selection_screen.dart';
 import 'package:f_m/module_splash/screen/splash_screen.dart';
@@ -19,10 +20,13 @@ class AppComponentInjector implements AppComponent {
 
   SplashModule _createSplashModule() => SplashModule(SplashScreen());
 
-  DetectionModule _createDetectionModule() =>
-      DetectionModule(ObjectSelectionScreen(
-        bloc: ObjectDetectionCubit(cameraCubit: CameraCubit()),
-      ));
+  DetectionModule _createDetectionModule() {
+     Mediator mediator = MediatorImp();
+     CameraCubit cameraCubit = CameraCubit(mediator: mediator);
+     ObjectDetectionCubit objectDetectionCubit = ObjectDetectionCubit( mediator: mediator);
+     return DetectionModule(ObjectSelectionScreen(
+        bloc:objectDetectionCubit,
+      ));}
 
   MyApp get app {
     return _createApp();

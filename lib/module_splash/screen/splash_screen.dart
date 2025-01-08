@@ -1,13 +1,12 @@
 
-import 'package:f_m/models/screen_params.dart';
+import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:f_m/module_detection/detection_routes.dart';
 import 'package:f_m/module_splash/bloc/splash_bloc.dart';
-import 'package:f_m/module_detection/screen/object_selection_screen.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
 
-  SplashScreen(
+  const SplashScreen({super.key}
   );
  
   @override

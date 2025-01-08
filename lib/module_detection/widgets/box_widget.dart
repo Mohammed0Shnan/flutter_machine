@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:f_m/models/recognition.dart';
+import 'package:f_m/module_detection/models/recognition.dart';
 
 class BoxWidget extends StatelessWidget {
   final Recognition result;

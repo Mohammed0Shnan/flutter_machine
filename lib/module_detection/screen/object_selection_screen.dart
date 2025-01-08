@@ -1,4 +1,4 @@
-import 'package:f_m/module_detection/bloc/object_detect_state_managment.dart';
+import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/screen/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

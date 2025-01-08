@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:camera/camera.dart';
-import 'package:f_m/models/recognition.dart';
-import 'package:f_m/models/screen_params.dart';
+import 'package:f_m/module_detection/bloc/mediation_bloc.dart';
+import 'package:f_m/module_detection/models/recognition.dart';
+import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -60,23 +61,27 @@ class ObjectDetectionState {
 
 // ObjectDetectionCubit
 class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
-  final CameraCubit cameraCubit;
+  final String flag ='object_detection_cubit';
+  final Mediator mediator;
+  ObjectDetectionCubit({required this.mediator})
+      : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)){}
 
-  ObjectDetectionCubit({required this.cameraCubit})
-      : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)) {
-    // Listen to camera state updates
-    cameraCubit.stream.listen((cameraState) {
-      if (cameraState.state == CameraStateEnum.initialized) {
-        emit(state.copyWith(
-          controller: cameraState.controller,
-        ));
-      } else if (cameraState.state == CameraStateEnum.error) {
-        emit(state.copyWith(
-          controller: null,
-        ));
-      }
-    });
-  }
+  // final CameraCubit cameraCubit;
+  // ObjectDetectionCubit({required this.cameraCubit})
+  //     : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)) {
+    // // Listen to camera state updates
+    // cameraCubit.stream.listen((cameraState) {
+    //   if (cameraState.state == CameraStateEnum.initialized) {
+    //     emit(state.copyWith(
+    //       controller: cameraState.controller,
+    //     ));
+    //   } else if (cameraState.state == CameraStateEnum.error) {
+    //     emit(state.copyWith(
+    //       controller: null,
+    //     ));
+    //   }
+    // });
+  // }
 
   // Handle object detection logic
   void detectObject(Recognition recognition) {

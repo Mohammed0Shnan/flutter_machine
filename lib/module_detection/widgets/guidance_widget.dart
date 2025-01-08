@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:f_m/main.dart';
-import 'package:f_m/module_detection/bloc/object_detect_state_managment.dart';
+import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/screen/capture_display_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -94,9 +94,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
         rotationAngle = 0.0;
         break;
     }
-    setState(() {
       _rotationAngle = rotationAngle;
-    });
   }
 
 
