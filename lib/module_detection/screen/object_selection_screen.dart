@@ -1,15 +1,8 @@
-import 'package:f_m/module_detection/bloc/camera_cubit.dart';
-import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
-import 'package:f_m/module_detection/screen/home_screen.dart';
+import 'package:f_m/module_detection/detection_routes.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-
 class ObjectSelectionScreen extends StatelessWidget {
-
-  final ObjectDetectionCubit bloc;
-  final CameraCubit cameraBloc;
-  ObjectSelectionScreen({super.key,required this.bloc , required this.cameraBloc});
+  ObjectSelectionScreen(
+      {super.key});
 
   final Map<String, String> objects = {
     'Mobile': 'cell phone',
@@ -17,6 +10,7 @@ class ObjectSelectionScreen extends StatelessWidget {
     'Mouse': 'mouse',
     'Bottle': 'bottle',
   };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,18 +32,9 @@ class ObjectSelectionScreen extends StatelessWidget {
                       title: Text(objects.values.toList()[index]),
                       trailing: Icon(Icons.arrow_forward),
                       onTap: () {
-                        // Pass the selected object to the next screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlocProvider.value(
-                              value: bloc,
-                              child: HomeView(
-                                selectedObject: objects.values.toList()[index],
-                              ),
-                            ),
-                          ),
-                        );
+                        Navigator.pushNamed(
+                            context, DetectionRoutes.DETECTOR_SCREEN,
+                            arguments: objects.values.toList()[index]);
                       },
                     ),
                   );

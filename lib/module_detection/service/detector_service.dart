@@ -4,8 +4,9 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:camera/camera.dart';
+import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
+import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 import 'package:f_m/module_detection/models/recognition.dart';
@@ -34,7 +35,6 @@ class Detector {
   static const String _labelPath = 'assets/models/ssd_mobilenet.txt';
 
   Detector._(this._isolate, this._interpreter, this._labels);
-
   final Isolate _isolate;
   late final Interpreter _interpreter;
   late final List<String> _labels;
@@ -119,6 +119,147 @@ class Detector {
   void stop() {
     _isolate.kill();
   }
+
+
+
+  //!
+  Map<String, dynamic> calculateDirection(Recognition recognition) {
+    // Access the bounding box (location)
+    final Rect location = recognition.location;
+
+    // Get the object's center x-coordinate
+    final double objectCenterX = location.left + (location.width / 2);
+
+    // Define frame width based on ScreenParams
+    final double frameWidth = ScreenParams.screenPreviewSize.width;
+
+    // Define thresholds for regions
+    const double leftThresholdFactor = 0.33;
+    const double rightThresholdFactor = 0.66;
+
+    final double leftThreshold = frameWidth * leftThresholdFactor;
+    final double rightThreshold = frameWidth * rightThresholdFactor;
+
+    // Define a center tolerance (range considered "center")
+    const double centerToleranceFactor = 0.1;
+    final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
+    final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
+
+    // Include distance-related logic using bounding box size
+    const double fartherThreshold = 0.1; // Smaller objects are farther away
+    const double closerThreshold = 0.3; // Larger objects are closer
+
+    final double objectSizeFactor = location.width / frameWidth;
+
+    // Check if the object is within the center tolerance first
+    if (objectCenterX >= centerLeft && objectCenterX <= centerRight) {
+      if (recognition.score > 0.8 && objectSizeFactor < fartherThreshold) {
+        return {
+          'message': 'Move farther',
+          'direction': DirectionStatus.farther
+        };
+      } else if (recognition.score > 0.66 &&
+          objectSizeFactor > closerThreshold) {
+        return {'message': 'Move closer', 'direction': DirectionStatus.closer};
+      } else {
+        return {
+          'message': 'Object is centered',
+          'direction': DirectionStatus.center
+        };
+      }
+    }
+
+    // If not centered, determine other directions
+    if (objectCenterX < leftThreshold) {
+      return {'message': 'Move left', 'direction': DirectionStatus.left};
+    } else if (objectCenterX > rightThreshold) {
+      return {'message': 'Move right', 'direction': DirectionStatus.right};
+    }
+
+    // Default fallback
+    return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
+  }
+
+
+// Map<String,dynamic> _getDirection(Recognition recognition) {
+//   // Access the bounding box (location)
+//   final Rect location = recognition.location;
+//
+//   // Get the object's center x-coordinate
+//   final double objectCenterX = location.left + (location.width / 2);
+//
+//   // Define frame width based on ScreenParams
+//   final double frameWidth = ScreenParams.screenPreviewSize.width;
+//
+//   // Define thresholds for regions
+//   const double leftThresholdFactor = 0.33;
+//   const double rightThresholdFactor = 0.66;
+//
+//   final double leftThreshold = frameWidth * leftThresholdFactor;
+//   final double rightThreshold = frameWidth * rightThresholdFactor;
+//   print('===================> ${leftThreshold} <=======================');
+//   print('===================> ${rightThreshold} <=======================');
+//   print('===================> ${rightThreshold} <=======================');
+//   if (recognition.score > 0.8) {
+//     return {'message':'Move farther','direction':DirectionStatus.farther };
+//   }
+//  else if (recognition.score < 0.8 && recognition.score > 0.66 ) {
+//     return {'message':'Move closer','direction':DirectionStatus.closer };
+//   }
+//  else if (objectCenterX > leftThreshold) {
+//     return {'message':'Move right','direction':DirectionStatus.right };
+//   } else if (objectCenterX < rightThreshold) {
+//     return {'message':'Move left','direction':DirectionStatus.left };
+//   }
+//
+//   return {'message':'Move center','direction':DirectionStatus.center };
+//
+// }
+//
+// Map<String, dynamic> _getDirection(Recognition recognition) {
+//   // Access the bounding box (location)
+//   final Rect location = recognition.location;
+//
+//   // Get the object's center x-coordinate
+//   final double objectCenterX = location.left + (location.width / 2);
+//
+//   // Define frame width based on ScreenParams
+//   final double frameWidth = ScreenParams.screenPreviewSize.width;
+//
+//   // Define thresholds for regions
+//   const double leftThresholdFactor = 0.33;
+//   const double rightThresholdFactor = 0.66;
+//
+//   final double leftThreshold = frameWidth * leftThresholdFactor;
+//   final double rightThreshold = frameWidth * rightThresholdFactor;
+//
+//   // Define a center tolerance (range considered "center")
+//   const double centerToleranceFactor = 0.1;
+//   final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
+//   final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
+//
+//   // Include distance-related logic using bounding box size
+//   const double fartherThreshold = 0.1; // Smaller objects are farther away
+//   const double closerThreshold = 0.3; // Larger objects are closer
+//
+//   final double objectSizeFactor = location.width / frameWidth;
+//
+//   if (recognition.score > 0.8 && objectSizeFactor < fartherThreshold) {
+//     return {'message': 'Move farther', 'direction': DirectionStatus.farther};
+//   } else if (recognition.score > 0.66 && objectSizeFactor > closerThreshold) {
+//     return {'message': 'Move closer', 'direction': DirectionStatus.closer};
+//   } else if (objectCenterX >= centerLeft && objectCenterX <= centerRight) {
+//     return {'message': 'Object is centered', 'direction': DirectionStatus.center};
+//   } else if (objectCenterX < leftThreshold) {
+//     return {'message': 'Move left', 'direction': DirectionStatus.left};
+//   } else if (objectCenterX > rightThreshold) {
+//     return {'message': 'Move right', 'direction': DirectionStatus.right};
+//   }
+//
+//   return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
+// }
+
+
 }
 
 /// This is where we use the new feature Background Isolate Channels, which

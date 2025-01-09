@@ -18,7 +18,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
   late AnimationController _arrowController;
   String _guidanceMessage = "";
   late double _rotationAngle;
-
+late DirectionStatus direction ;
   late ObjectDetectionCubit detectBloc;
   @override
   void initState() {
@@ -33,16 +33,23 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
       });
     });
     _arrowController.repeat(reverse: true);
-
-
   }
-
   @override
   Widget build(BuildContext context) {
 
     return Column(
       children: [
-        _buildGuidanceMessage(_guidanceMessage),
+        BlocBuilder
+        <ObjectDetectionCubit, ObjectDetectionState>(
+            bloc: context.read<ObjectDetectionCubit>(),
+            builder: (context, state) {
+             if(  state.direction  == null){
+               return SizedBox.shrink();
+             }
+             direction =  state.direction!;
+             return _buildGuidanceMessage(_guidanceMessage);
+          }
+        ),
         Container(
           color: Colors.black,
           padding: EdgeInsets.all(5),
@@ -53,17 +60,16 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
               if (state.controller == null) {
                 return const CircularProgressIndicator();
               }
-
               if (state.status == ObjectDetectionStatus.detecting) {
                 _guidanceMessage = state.objectName??'...';
               } else if (state.status == ObjectDetectionStatus.notInPosition) {
                 _guidanceMessage = state.message ?? "Adjust position...";
-                _updateArrowDirection(state.direction!);
+                direction = state.direction!;
+                _updateArrowDirection(direction);
               } else if (state.status == ObjectDetectionStatus.inPosition) {
                 _guidanceMessage = state.message??'';
                 _captureImage(state.controller!);
               }
-
               return SizedBox.shrink();
             },
           ),
@@ -75,7 +81,6 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
 
   void _updateArrowDirection(DirectionStatus direction) {
     double rotationAngle = 0.0;
-
     switch (direction) {
       case DirectionStatus.closer:
         rotationAngle = 0.0;
@@ -96,7 +101,36 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
     }
       _rotationAngle = rotationAngle;
   }
+  // Function to calculate the position offset based on the direction
+  Offset _calculateTranslation(DirectionStatus direction) {
+    double horizontalOffset = 0.0;
+    double verticalOffset = 0.0;
 
+    switch (direction) {
+      case DirectionStatus.closer:
+        horizontalOffset = 50 * _arrowController.value; // Moving closer, horizontal
+        verticalOffset = 50 * _arrowController.value;   // Moving closer, vertical
+        break;
+      case DirectionStatus.farther:
+        horizontalOffset =0.0; // Moving farther, horizontal
+        verticalOffset = -100 * _arrowController.value;   // Moving farther, vertical
+        break;
+      case DirectionStatus.left:
+        horizontalOffset = -100 * _arrowController.value; // Moving left, horizontal
+        verticalOffset = 0.0; // No vertical movement
+        break;
+      case DirectionStatus.right:
+        horizontalOffset = 100 * _arrowController.value; // Moving right, horizontal
+        verticalOffset = 0.0; // No vertical movement
+        break;
+      case DirectionStatus.center:
+      case DirectionStatus.unknown:
+        horizontalOffset = 0.0; // No horizontal movement
+        verticalOffset = 0.0;   // No vertical movement
+        break;
+    }
+    return Offset(horizontalOffset, verticalOffset); // Return calculated offsets
+  }
 
 
   Future<void> _captureImage(CameraController controller) async {
@@ -133,17 +167,22 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
         FadeTransition(
           opacity: _arrowController.drive(CurveTween(curve: Curves.easeInOut)), // Fade animation
           child: Transform.scale(
-            scale: 1 + 0.1 * _arrowController.value,
+            scale: 1 + 0.1 * _arrowController.value, // Scale animation
             child: Transform.rotate(
-              angle: _rotationAngle,
-              child: Icon(
-                Icons.arrow_upward,
-                size: 60,
-                color: Colors.red,
+              angle: _rotationAngle, // Rotation animation based on direction
+              child: Transform.translate(
+                // Position translation based on direction
+                offset: _calculateTranslation(direction), // Call the translation function here
+                child: Icon(
+                  Icons.arrow_upward,
+                  size: 60,
+                  color: Colors.red,
+                ),
               ),
             ),
           ),
         ),
+
         const SizedBox(height: 10),
         Text(
           message,

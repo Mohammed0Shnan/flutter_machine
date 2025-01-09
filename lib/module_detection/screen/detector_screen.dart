@@ -16,9 +16,11 @@ import '../bloc/object_detect_bloc.dart';
 
 /// [DetectorWidget] sends each frame for inference
 class DetectorScreen extends StatefulWidget {
-  final String selectedObject;
 
-  const DetectorScreen({super.key, required this.selectedObject});
+  final ObjectDetectionCubit detectionBloc;
+  final CameraCubit cameraBloc;
+
+  const DetectorScreen({super.key,required this.detectionBloc, required this.cameraBloc});
 
   @override
   State<DetectorScreen> createState() => _DetectorScreenState();
@@ -26,6 +28,9 @@ class DetectorScreen extends StatefulWidget {
 
 class _DetectorScreenState extends State<DetectorScreen>
     with WidgetsBindingObserver {
+
+  late  String selectedObject;
+
   /// List of available cameras
   late List<CameraDescription> cameras;
 
@@ -45,19 +50,12 @@ class _DetectorScreenState extends State<DetectorScreen>
 
   /// Realtime stats
   Map<String, String>? stats;
-  late ObjectDetectionCubit  detectBloc;
-  late CameraCubit  cameraBloc;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((c){
-      if(mounted){
-        detectBloc =  context.read<ObjectDetectionCubit>();
-        cameraBloc =  context.read<CameraCubit>();
-        _initStateAsync();
-      }
-    });
+      _initStateAsync();
 
   }
 
@@ -66,6 +64,7 @@ class _DetectorScreenState extends State<DetectorScreen>
     Detector.start().then((instance) {
       setState(() {
         _detector = instance;
+        widget.detectionBloc.initService(instance);
         _subscription = instance.resultsStream.stream.listen((values) {
           setState(() {
             results = values['recognitions'];
@@ -106,16 +105,19 @@ class _DetectorScreenState extends State<DetectorScreen>
       ResolutionPreset.low,
       enableAudio: false,
     )..initialize().then((_) async {
-      cameraBloc.initializeCamera(_cameraController);
+      widget.cameraBloc.initializeCamera(_cameraController);
       await _cameraController!.startImageStream(onLatestImageAvailable);
       ScreenParams.previewSize = _cameraController!.value.previewSize!;
       setState(() {});
     }
     );
   }
-
   @override
   Widget build(BuildContext context) {
+    selectedObject = ModalRoute.of(context)!.settings.arguments as String ;
+
+
+
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const SizedBox.shrink();
     }
@@ -123,32 +125,40 @@ class _DetectorScreenState extends State<DetectorScreen>
     // Calculate aspect ratio for the camera feed
     var aspect = 1 / _cameraController!.value.aspectRatio;
 
-    return SizedBox(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          SizedBox.expand(),
-          AspectRatio(
-            aspectRatio: aspect,
-            child: CameraPreview(_cameraController!),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ObjectDetectionCubit>(create: (_)=>  widget.detectionBloc),
+        BlocProvider<CameraCubit>(create: (_)=>  widget.cameraBloc),
+      ],
+      child: Scaffold(
+        body: SizedBox(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox.expand(),
+              AspectRatio(
+                aspectRatio: aspect,
+                child: CameraPreview(_cameraController!),
+              ),
+              AspectRatio(
+                aspectRatio: aspect,
+                child: _buildBoundingBoxes(context),
+              ),
+              Positioned(
+                bottom: 350,
+                left: 0,
+                right: 0,
+                child: GuidanceWidget(),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _statsWidget(),
+              ),
+            ],
           ),
-          AspectRatio(
-            aspectRatio: aspect,
-            child: _buildBoundingBoxes(context),
-          ),
-          Positioned(
-            bottom: 350,
-            left: 0,
-            right: 0,
-            child: GuidanceWidget(),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _statsWidget(),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -177,9 +187,9 @@ class _DetectorScreenState extends State<DetectorScreen>
     if (results == null) return const SizedBox.shrink();
     final filteredResults = results!.where((box) => box.label.trim() == 'mouse').toList();
     if (filteredResults.isNotEmpty) {
-      detectBloc.detectObject(filteredResults.first);
+      widget.detectionBloc.detectObject(filteredResults.first);
     } else {
-      detectBloc.objectNotDetected(widget.selectedObject);
+      widget.detectionBloc.objectNotDetected(selectedObject);
     }
     return Stack(
       children: filteredResults.map((box) => BoxWidget(result: box)).toList(),
@@ -210,7 +220,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    cameraBloc.initializeCamera(null);
+    widget.cameraBloc.initializeCamera(null);
     _cameraController?.dispose();
     _detector?.stop();
     _subscription?.cancel();

@@ -20,7 +20,6 @@ class _SplashScreenState extends State<SplashScreen> {
     spalshAnimationBloC.playAnimation();
        WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getNextRoute().then((route) async{
-        await Future.delayed(Duration(seconds: 1));
         Navigator.pushNamedAndRemoveUntil(context, route ,(r)=> false);
       });
     });
@@ -35,7 +34,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     ScreenParams.screenSize = MediaQuery.sizeOf(context);
     return Scaffold(
-
     );
   }
 

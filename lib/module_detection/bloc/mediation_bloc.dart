@@ -17,7 +17,7 @@ class MediatorImp implements Mediator {
   @override
   void notify(String event, Object? data, DetectionBaseBloc sender) {
     for (final entry in _blocs.entries) {
-      if (entry.key == sender.getFlag()) {
+      if (entry.key != sender.getFlag()) {
         entry.value.handleEvent(event, data);
       }
     }
