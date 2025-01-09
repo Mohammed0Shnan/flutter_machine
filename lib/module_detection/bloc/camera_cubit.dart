@@ -36,18 +36,28 @@ class CameraState {
     );
   }
 }
+
 // CameraCubit
-class CameraCubit extends Cubit<CameraState> implements DetectionBaseBloc{
+class CameraCubit extends Cubit<CameraState> implements DetectionBaseBloc {
   final String flag = 'camera_cubit';
   final Mediator mediator;
-  CameraCubit({required this.mediator}) : super(CameraState(state: CameraStateEnum.initial));
+
+  CameraCubit({required this.mediator})
+      : super(CameraState(state: CameraStateEnum.initial)) {
+    mediator.registerBloc(this);
+  }
 
   Future<void> initializeCamera(CameraController? controller) async {
-    emit(state.copyWith( state: CameraStateEnum.loading));
+    emit(state.copyWith(state: CameraStateEnum.loading));
+    mediator.notify('loading', {}, this);
     if (controller == null) {
-      emit(state.copyWith( state: CameraStateEnum.error, errorMessage: "No cameras available"));
+      emit(state.copyWith(
+          state: CameraStateEnum.error, errorMessage: "No cameras available"));
+      mediator.notify('error', {'data': state.errorMessage}, this);
     } else {
-      emit(state.copyWith(  state: CameraStateEnum.initialized, controller: controller));
+      emit(state.copyWith(
+          state: CameraStateEnum.initialized, controller: controller));
+      mediator.notify('initialized', {'data': state.controller}, this);
     }
   }
 
@@ -56,8 +66,5 @@ class CameraCubit extends Cubit<CameraState> implements DetectionBaseBloc{
 
   @override
   void handleEvent(String event, Object? data) {
-    // TODO: implement handleEvent
   }
-
-
 }

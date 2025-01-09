@@ -14,14 +14,8 @@ enum ObjectDetectionStatus {
   notInPosition,
   imageCaptured,
 }
-enum DirectionStatus {
-  left,
-  right,
-  closer,
-  farther,
-  center,unknown
 
-}
+enum DirectionStatus { left, right, closer, farther, center, unknown }
 
 class ObjectDetectionState {
   final ObjectDetectionStatus status;
@@ -60,38 +54,24 @@ class ObjectDetectionState {
 }
 
 // ObjectDetectionCubit
-class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
-  final String flag ='object_detection_cubit';
+class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
+    implements DetectionBaseBloc {
+  final String flag = 'object_detection_cubit';
   final Mediator mediator;
-  ObjectDetectionCubit({required this.mediator})
-      : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)){}
 
-  // final CameraCubit cameraCubit;
-  // ObjectDetectionCubit({required this.cameraCubit})
-  //     : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)) {
-    // // Listen to camera state updates
-    // cameraCubit.stream.listen((cameraState) {
-    //   if (cameraState.state == CameraStateEnum.initialized) {
-    //     emit(state.copyWith(
-    //       controller: cameraState.controller,
-    //     ));
-    //   } else if (cameraState.state == CameraStateEnum.error) {
-    //     emit(state.copyWith(
-    //       controller: null,
-    //     ));
-    //   }
-    // });
-  // }
+  ObjectDetectionCubit({required this.mediator})
+      : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)) {
+    mediator.registerBloc(this);
+  }
 
   // Handle object detection logic
   void detectObject(Recognition recognition) {
     if (_isObjectInPosition(recognition)) {
       emit(state.copyWith(
-        status: ObjectDetectionStatus.inPosition,
-        message: "Object in position!"
-      ));
+          status: ObjectDetectionStatus.inPosition,
+          message: "Object in position!"));
     } else {
-      Map<String , dynamic> direction = _getDirection(recognition);
+      Map<String, dynamic> direction = _getDirection(recognition);
       emit(state.copyWith(
         status: ObjectDetectionStatus.notInPosition,
         message: direction['message'],
@@ -106,7 +86,6 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
       objectName: "Detecting $objectName...",
     ));
   }
-
 
   bool _isObjectInPosition(Recognition recognition) {
     return recognition.score > 0.9;
@@ -221,11 +200,18 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
     // Check if the object is within the center tolerance first
     if (objectCenterX >= centerLeft && objectCenterX <= centerRight) {
       if (recognition.score > 0.8 && objectSizeFactor < fartherThreshold) {
-        return {'message': 'Move farther', 'direction': DirectionStatus.farther};
-      } else if (recognition.score > 0.66 && objectSizeFactor > closerThreshold) {
+        return {
+          'message': 'Move farther',
+          'direction': DirectionStatus.farther
+        };
+      } else if (recognition.score > 0.66 &&
+          objectSizeFactor > closerThreshold) {
         return {'message': 'Move closer', 'direction': DirectionStatus.closer};
       } else {
-        return {'message': 'Object is centered', 'direction': DirectionStatus.center};
+        return {
+          'message': 'Object is centered',
+          'direction': DirectionStatus.center
+        };
       }
     }
 
@@ -240,7 +226,19 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState> {
     return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
   }
 
+  @override
+  String getFlag() => flag;
 
-
-
+  @override
+  void handleEvent(String event, Object? data) {
+    if (event == 'initialized') {
+      emit(state.copyWith(
+        controller: (data! as Map)['data'],
+      ));
+    } else if (event == 'error') {
+      emit(state.copyWith(
+        controller: null,
+      ));
+    }
+  }
 }

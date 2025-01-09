@@ -1,3 +1,4 @@
+import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/screen/home_screen.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class ObjectSelectionScreen extends StatelessWidget {
 
   final ObjectDetectionCubit bloc;
-  ObjectSelectionScreen({super.key,required this.bloc});
+  final CameraCubit cameraBloc;
+  ObjectSelectionScreen({super.key,required this.bloc , required this.cameraBloc});
 
   final Map<String, String> objects = {
     'Mobile': 'cell phone',

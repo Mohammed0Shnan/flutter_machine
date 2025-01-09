@@ -11,6 +11,9 @@ import 'package:f_m/module_splash/splash_module.dart';
 class AppComponentInjector implements AppComponent {
   AppComponentInjector._();
 
+  //! Singleton
+  final  Mediator mediatorSingleton = MediatorImp();
+
   static Future<AppComponent> create() async {
     final injector = AppComponentInjector._();
     return injector;
@@ -21,11 +24,12 @@ class AppComponentInjector implements AppComponent {
   SplashModule _createSplashModule() => SplashModule(SplashScreen());
 
   DetectionModule _createDetectionModule() {
-     Mediator mediator = MediatorImp();
-     CameraCubit cameraCubit = CameraCubit(mediator: mediator);
-     ObjectDetectionCubit objectDetectionCubit = ObjectDetectionCubit( mediator: mediator);
+
+     CameraCubit cameraBloc = CameraCubit(mediator: mediatorSingleton);
+     ObjectDetectionCubit objectDetectionCubit = ObjectDetectionCubit( mediator: mediatorSingleton);
      return DetectionModule(ObjectSelectionScreen(
         bloc:objectDetectionCubit,
+       cameraBloc: cameraBloc,
       ));}
 
   MyApp get app {

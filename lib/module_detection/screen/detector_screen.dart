@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:camera/camera.dart';
+import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:f_m/module_detection/service/detector_service.dart';
 import 'package:f_m/module_detection/widgets/guidance_widget.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   /// Realtime stats
   Map<String, String>? stats;
   late ObjectDetectionCubit  detectBloc;
+  late CameraCubit  cameraBloc;
   @override
   void initState() {
     super.initState();
@@ -52,6 +54,7 @@ class _DetectorScreenState extends State<DetectorScreen>
     WidgetsBinding.instance.addPostFrameCallback((c){
       if(mounted){
         detectBloc =  context.read<ObjectDetectionCubit>();
+        cameraBloc =  context.read<CameraCubit>();
         _initStateAsync();
       }
     });
@@ -103,7 +106,7 @@ class _DetectorScreenState extends State<DetectorScreen>
       ResolutionPreset.low,
       enableAudio: false,
     )..initialize().then((_) async {
-      detectBloc.cameraCubit.initializeCamera(_cameraController);
+      cameraBloc.initializeCamera(_cameraController);
       await _cameraController!.startImageStream(onLatestImageAvailable);
       ScreenParams.previewSize = _cameraController!.value.previewSize!;
       setState(() {});
@@ -207,7 +210,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    detectBloc.cameraCubit.initializeCamera(null);
+    cameraBloc.initializeCamera(null);
     _cameraController?.dispose();
     _detector?.stop();
     _subscription?.cancel();
