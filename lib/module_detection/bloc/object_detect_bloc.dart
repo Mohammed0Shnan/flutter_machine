@@ -72,7 +72,9 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
     if (_isObjectInPosition(recognition)) {
       emit(state.copyWith(
           status: ObjectDetectionStatus.inPosition,
-          message: "Object in position!"));
+          message: "Object in position!",
+       direction: null
+      ));
     } else {
       Map<String, dynamic> direction = service.calculateDirection(recognition);
       emit(state.copyWith(

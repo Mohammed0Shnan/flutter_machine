@@ -16,128 +16,119 @@ class GuidanceWidget extends StatefulWidget {
 
 class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProviderStateMixin {
   late AnimationController _arrowController;
-  String _guidanceMessage = "";
   late double _rotationAngle;
-late DirectionStatus direction ;
+  late DirectionStatus direction;
   late ObjectDetectionCubit detectBloc;
+  String _guidanceMessage = "";
+
   @override
   void initState() {
     super.initState();
-    _rotationAngle =0.0;
+    _rotationAngle = 0.0;
+    direction = DirectionStatus.unknown;
+
     _arrowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
-    );
-    _arrowController.addListener((){
-      setState(() {
-      });
-    });
-    _arrowController.repeat(reverse: true);
+    )..repeat(reverse: true); // Continuous bounce effect
   }
+
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<ObjectDetectionCubit, ObjectDetectionState>(
+      bloc: context.read<ObjectDetectionCubit>(),
+      builder: (context, state) {
+        if (state.controller == null) {
+          return const CircularProgressIndicator();
+        }
+        if (state.status == ObjectDetectionStatus.detecting) {
+          _guidanceMessage = state.objectName ?? '...';
+        } else if (state.status == ObjectDetectionStatus.notInPosition) {
+          _guidanceMessage = state.message ?? "Adjust position...";
+          _updateArrowDirection(state.direction!);
+        } else if (state.status == ObjectDetectionStatus.inPosition) {
+          _guidanceMessage = state.message ?? '';
+          _captureImage(state.controller!);
+        }
 
-    return Column(
-      children: [
-        BlocBuilder
-        <ObjectDetectionCubit, ObjectDetectionState>(
-            bloc: context.read<ObjectDetectionCubit>(),
-            builder: (context, state) {
-             if(  state.direction  == null){
-               return SizedBox.shrink();
-             }
-             direction =  state.direction!;
-             return _buildGuidanceMessage(_guidanceMessage);
-          }
-        ),
-        Container(
-          color: Colors.black,
-          padding: EdgeInsets.all(5),
-          child: BlocBuilder
-          <ObjectDetectionCubit, ObjectDetectionState>(
-            bloc: context.read<ObjectDetectionCubit>(),
-            builder: (context, state) {
-              if (state.controller == null) {
-                return const CircularProgressIndicator();
-              }
-              if (state.status == ObjectDetectionStatus.detecting) {
-                _guidanceMessage = state.objectName??'...';
-              } else if (state.status == ObjectDetectionStatus.notInPosition) {
-                _guidanceMessage = state.message ?? "Adjust position...";
-                direction = state.direction!;
-                _updateArrowDirection(direction);
-              } else if (state.status == ObjectDetectionStatus.inPosition) {
-                _guidanceMessage = state.message??'';
-                _captureImage(state.controller!);
-              }
-              return SizedBox.shrink();
-            },
-          ),
-        ),
-      ],
+        return Column(
+          children: [
+            if(state.direction != null )
+            _buildGuidanceMessage(_guidanceMessage),
+            Container(
+              color: Colors.black,
+              padding: const EdgeInsets.all(5),
+              child: const SizedBox.shrink(),
+            ),
+          ],
+        );
+      },
     );
+
   }
 
+  void _updateArrowDirection(DirectionStatus newDirection) {
+    double targetRotationAngle = 0.0;
 
-  void _updateArrowDirection(DirectionStatus direction) {
-    double rotationAngle = 0.0;
-    switch (direction) {
+    switch (newDirection) {
       case DirectionStatus.closer:
-        rotationAngle = 0.0;
+        targetRotationAngle = 0.0;
         break;
       case DirectionStatus.farther:
-        rotationAngle = pi;
+        targetRotationAngle = pi;
         break;
       case DirectionStatus.left:
-        rotationAngle = -pi / 2;
+        targetRotationAngle = -pi / 2;
         break;
       case DirectionStatus.right:
-        rotationAngle = pi / 2;
+        targetRotationAngle = pi / 2;
         break;
       case DirectionStatus.center:
       case DirectionStatus.unknown:
-        rotationAngle = 0.0;
+        targetRotationAngle = 0.0;
         break;
     }
-      _rotationAngle = rotationAngle;
+
+    // Update state to reflect the new angle and direction
+    setState(() {
+      _rotationAngle = targetRotationAngle;
+      direction = newDirection;
+    });
   }
-  // Function to calculate the position offset based on the direction
+
   Offset _calculateTranslation(DirectionStatus direction) {
     double horizontalOffset = 0.0;
     double verticalOffset = 0.0;
 
     switch (direction) {
       case DirectionStatus.closer:
-        horizontalOffset = 50 * _arrowController.value; // Moving closer, horizontal
-        verticalOffset = 50 * _arrowController.value;   // Moving closer, vertical
+        horizontalOffset = 50 * _arrowController.value;
+        verticalOffset = 50 * _arrowController.value;
         break;
       case DirectionStatus.farther:
-        horizontalOffset =0.0; // Moving farther, horizontal
-        verticalOffset = -100 * _arrowController.value;   // Moving farther, vertical
+        verticalOffset = -100 * _arrowController.value;
         break;
       case DirectionStatus.left:
-        horizontalOffset = -100 * _arrowController.value; // Moving left, horizontal
-        verticalOffset = 0.0; // No vertical movement
+        horizontalOffset = -100 * _arrowController.value;
         break;
       case DirectionStatus.right:
-        horizontalOffset = 100 * _arrowController.value; // Moving right, horizontal
-        verticalOffset = 0.0; // No vertical movement
+        horizontalOffset = 100 * _arrowController.value;
         break;
       case DirectionStatus.center:
       case DirectionStatus.unknown:
-        horizontalOffset = 0.0; // No horizontal movement
-        verticalOffset = 0.0;   // No vertical movement
+        horizontalOffset = 0.0;
+        verticalOffset = 0.0;
         break;
     }
-    return Offset(horizontalOffset, verticalOffset); // Return calculated offsets
-  }
 
+    return Offset(horizontalOffset, verticalOffset);
+  }
 
   Future<void> _captureImage(CameraController controller) async {
     try {
       final image = await controller.takePicture();
       print('===========> Photo Captured <===========');
-      // _navigateToCapturedImageScreen(image);
+      _navigateToCapturedImageScreen(image);
     } catch (e) {
       print("Error capturing image: $e");
     }
@@ -161,28 +152,26 @@ late DirectionStatus direction ;
   }
 
   Widget _buildGuidanceMessage(String message) {
+  Offset offset =  _calculateTranslation(direction);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         FadeTransition(
-          opacity: _arrowController.drive(CurveTween(curve: Curves.easeInOut)), // Fade animation
-          child: Transform.scale(
-            scale: 1 + 0.1 * _arrowController.value, // Scale animation
-            child: Transform.rotate(
-              angle: _rotationAngle, // Rotation animation based on direction
-              child: Transform.translate(
-                // Position translation based on direction
-                offset: _calculateTranslation(direction), // Call the translation function here
-                child: Icon(
-                  Icons.arrow_upward,
-                  size: 60,
-                  color: Colors.red,
-                ),
+          opacity: _arrowController.drive(CurveTween(curve: Curves.easeInOut)),
+          child: Transform(
+            transform: Matrix4.identity()
+              ..rotateZ(_rotationAngle)
+              ..translate(
+                offset.dx,
+                offset.dy,
               ),
+            child: Icon(
+              Icons.arrow_upward,
+              size: 60,
+              color: Colors.red,
             ),
           ),
         ),
-
         const SizedBox(height: 10),
         Text(
           message,
@@ -196,12 +185,9 @@ late DirectionStatus direction ;
     );
   }
 
-
   @override
   void dispose() {
     _arrowController.dispose();
     super.dispose();
   }
 }
-
-
