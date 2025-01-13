@@ -1,6 +1,4 @@
-
 import 'dart:async';
-import 'dart:isolate';
 
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/camera_cubit.dart';
@@ -16,11 +14,11 @@ import '../bloc/object_detect_bloc.dart';
 
 /// [DetectorWidget] sends each frame for inference
 class DetectorScreen extends StatefulWidget {
-
   final ObjectDetectionCubit detectionBloc;
   final CameraCubit cameraBloc;
 
-  const DetectorScreen({super.key,required this.detectionBloc, required this.cameraBloc});
+  const DetectorScreen(
+      {super.key, required this.detectionBloc, required this.cameraBloc});
 
   @override
   State<DetectorScreen> createState() => _DetectorScreenState();
@@ -28,8 +26,7 @@ class DetectorScreen extends StatefulWidget {
 
 class _DetectorScreenState extends State<DetectorScreen>
     with WidgetsBindingObserver {
-
-  late  String selectedObject;
+  late String selectedObject;
 
   /// List of available cameras
   late List<CameraDescription> cameras;
@@ -55,8 +52,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-      _initStateAsync();
-
+    _initStateAsync();
   }
 
   void _initStateAsync() async {
@@ -74,49 +70,49 @@ class _DetectorScreenState extends State<DetectorScreen>
       });
     });
   }
-  // void _initializeCamera() async {
-  //   cameras = await availableCameras();
-  //   // cameras[0] for back-camera
-  //   _cameraController = CameraController(
-  //     cameras[0],
-  //     ResolutionPreset.low,
-  //     enableAudio: false,
-  //   )..initialize().then((_) async {
-  //         detectBloc.cameraCubit.initializeCamera(_cameraController);
-  //         await _cameraController!.startImageStream(onLatestImageAvailable);
-  //         ScreenParams.previewSize = _cameraController!.value.previewSize!;
-  //         setState(() {});
-  //     });
-  // }
+
   void _initializeCamera() async {
     cameras = await availableCameras();
-    final frontCameraIndex = cameras.indexWhere(
-          (camera) => camera.lensDirection == CameraLensDirection.front,
-    );
-
-    if (frontCameraIndex == -1) {
-      print("No front camera found!");
-      return;
-    }
-
-    // Use the front camera
+    // cameras[0] for back-camera
     _cameraController = CameraController(
-      cameras[frontCameraIndex],
+      cameras[0],
       ResolutionPreset.low,
       enableAudio: false,
     )..initialize().then((_) async {
-      widget.cameraBloc.initializeCamera(_cameraController);
-      await _cameraController!.startImageStream(onLatestImageAvailable);
-      ScreenParams.previewSize = _cameraController!.value.previewSize!;
-      setState(() {});
-    }
-    );
+        widget.cameraBloc.initializeCamera(_cameraController);
+        await _cameraController!.startImageStream(onLatestImageAvailable);
+        ScreenParams.previewSize = _cameraController!.value.previewSize!;
+        setState(() {});
+      });
   }
+
+  // void _initializeCamera() async {
+  //   cameras = await availableCameras();
+  //   final frontCameraIndex = cameras.indexWhere(
+  //         (camera) => camera.lensDirection == CameraLensDirection.front,
+  //   );
+  //
+  //   if (frontCameraIndex == -1) {
+  //     print("No front camera found!");
+  //     return;
+  //   }
+  //
+  //   // Use the front camera
+  //   _cameraController = CameraController(
+  //     cameras[frontCameraIndex],
+  //     ResolutionPreset.low,
+  //     enableAudio: false,
+  //   )..initialize().then((_) async {
+  //     widget.cameraBloc.initializeCamera(_cameraController);
+  //     await _cameraController!.startImageStream(onLatestImageAvailable);
+  //     ScreenParams.previewSize = _cameraController!.value.previewSize!;
+  //     setState(() {});
+  //   }
+  //   );
+  // }
   @override
   Widget build(BuildContext context) {
-    selectedObject = ModalRoute.of(context)!.settings.arguments as String ;
-
-
+    selectedObject = ModalRoute.of(context)!.settings.arguments as String;
 
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const SizedBox.shrink();
@@ -127,8 +123,8 @@ class _DetectorScreenState extends State<DetectorScreen>
 
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ObjectDetectionCubit>(create: (_)=>  widget.detectionBloc),
-        BlocProvider<CameraCubit>(create: (_)=>  widget.cameraBloc),
+        BlocProvider<ObjectDetectionCubit>(create: (_) => widget.detectionBloc),
+        BlocProvider<CameraCubit>(create: (_) => widget.cameraBloc),
       ],
       child: Scaffold(
         body: SizedBox(
@@ -163,31 +159,57 @@ class _DetectorScreenState extends State<DetectorScreen>
     );
   }
 
-
   Widget _statsWidget() => (stats != null)
       ? Align(
-    alignment: Alignment.bottomCenter,
-    child: Container(
-      color: Colors.white.withAlpha(150),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: stats!.entries
-              .map((e) => SizedBox(height: 40,width:double.infinity, child: Row(children: [Text("${e.key}  ",style: TextStyle(fontSize: 20,fontWeight: FontWeight.w700),) ,Text(e.value,style: TextStyle(fontSize: 20,fontWeight: FontWeight.w700 ,color: Colors.red),)],),))
-              .toList(),
-        ),
-      ),
-    ),
-  )
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            color: Colors.white.withAlpha(150),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: stats!.entries
+                    .map((e) => SizedBox(
+                          height: 40,
+                          width: double.infinity,
+                          child: Row(
+                            children: [
+                              Text(
+                                "${e.key}  ",
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                e.value,
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.red),
+                              )
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+        )
       : const SizedBox.shrink();
 
   /// Returns Stack of bounding boxes
-  Widget _buildBoundingBoxes(BuildContext context ,) {
-    if (results == null) return const SizedBox.shrink();
-    final filteredResults = results!.where((box) => box.label.trim() == 'mouse').toList();
+  Widget _buildBoundingBoxes(
+    BuildContext context,
+  ) {
+    if (results == null || _cameraController == null) {
+      return const SizedBox.shrink();
+    }
+    final filteredResults =
+        results!.where((box) => box.label.trim() == selectedObject).toList();
     if (filteredResults.isNotEmpty) {
-      widget.detectionBloc.detectObject(filteredResults.first);
+      widget.detectionBloc.detectObject(
+          filteredResults.first,
+          ScreenParams.screenPreviewSize.width,
+          ScreenParams.screenPreviewSize.height);
     } else {
       widget.detectionBloc.objectNotDetected(selectedObject);
     }
@@ -195,7 +217,6 @@ class _DetectorScreenState extends State<DetectorScreen>
       children: filteredResults.map((box) => BoxWidget(result: box)).toList(),
     );
   }
-
 
   /// Callback to receive each frame [CameraImage] perform inference on it
   void onLatestImageAvailable(CameraImage cameraImage) async {

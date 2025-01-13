@@ -23,7 +23,24 @@ class Recognition {
       location.height * scaleY,
     );
   }
+  // Convert the object to a Map for serialization
+  Map<String, dynamic> toMap() {
+    return {
+      'location': {
+        'left': _location.left,
+        'top': _location.top,
+        'width': _location.width,
+        'height': _location.height,
+      }
+    };
 
+  }
+
+  static Recognition fromMap(Map<String, dynamic> map) {
+    final locationMap = map['location'] as Map<String, dynamic>;
+    final location = Rect.fromLTWH(locationMap['left'], locationMap['top'], locationMap['width'], locationMap['height']);
+    return Recognition(map['id'], map['label'], map['score'], location);
+  }
   @override
   String toString() {
     return 'Recognition(id: $id, label: $label, score: $score, location: $location)';

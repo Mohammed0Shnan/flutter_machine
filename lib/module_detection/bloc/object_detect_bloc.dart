@@ -1,7 +1,8 @@
 import 'dart:io';
- import 'package:camera/camera.dart';
+import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/mediation_bloc.dart';
 import 'package:f_m/module_detection/models/recognition.dart';
+import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:f_m/module_detection/service/detector_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,7 +14,7 @@ enum ObjectDetectionStatus {
   imageCaptured,
 }
 
-enum DirectionStatus { left, right, closer, farther, center, unknown }
+enum DirectionStatus { left, right, center, unknown, up, down }
 
 class ObjectDetectionState {
   final ObjectDetectionStatus status;
@@ -58,25 +59,46 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   final Mediator mediator;
   late Detector service;
 
-  ObjectDetectionCubit({required this.mediator })
+  ObjectDetectionCubit({required this.mediator})
       : super(ObjectDetectionState(status: ObjectDetectionStatus.initial)) {
     mediator.registerBloc(this);
   }
 
-  initService(Detector service){
+  initService(Detector service) {
     this.service = service;
   }
 
   // Handle object detection logic
-  void detectObject(Recognition recognition) {
+  void detectObject(Recognition recognition, double w, double h) async {
     if (_isObjectInPosition(recognition)) {
       emit(state.copyWith(
           status: ObjectDetectionStatus.inPosition,
           message: "Object in position!",
-       direction: null
-      ));
+          direction: null));
     } else {
-      Map<String, dynamic> direction = service.calculateDirection(recognition);
+      var res = await service.calculateDirection(
+        left: recognition.location.left,
+        right: recognition.location.right,
+        top: recognition.location.top,
+        bottom: recognition.location.bottom,
+        frameWidth: w,
+        frameHeight: h,
+      );
+      Map<String, dynamic> direction = {};
+      if (res == DirectionStatus.left) {
+        direction['message'] = "Move Left";
+      } else if (res == DirectionStatus.right) {
+        direction['message'] = "Move Right";
+      } else if (res == DirectionStatus.up) {
+        direction['message'] = "Move Up";
+      } else if (res == DirectionStatus.down) {
+        direction['message'] = "Move Down";
+      } else if (res == DirectionStatus.center) {
+        direction['message'] = "Is Centered";
+      } else {
+        direction['message'] = "Adjust Position";
+      }
+      direction['direction'] = res;
       emit(state.copyWith(
         status: ObjectDetectionStatus.notInPosition,
         message: direction['message'],
@@ -95,7 +117,6 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   bool _isObjectInPosition(Recognition recognition) {
     return recognition.score > 0.9;
   }
-
 
   @override
   String getFlag() => flag;

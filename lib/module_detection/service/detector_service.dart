@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -7,12 +6,12 @@ import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 import 'package:f_m/module_detection/models/recognition.dart';
 import 'package:f_m/utils/image_utils.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
-
 
 enum _Codes {
   init,
@@ -35,6 +34,7 @@ class Detector {
   static const String _labelPath = 'assets/models/ssd_mobilenet.txt';
 
   Detector._(this._isolate, this._interpreter, this._labels);
+
   final Isolate _isolate;
   late final Interpreter _interpreter;
   late final List<String> _labels;
@@ -120,66 +120,82 @@ class Detector {
     _isolate.kill();
   }
 
+  Future<DirectionStatus> calculateDirection({
+    required double left,
+    required double top,
+    required double right,
+    required double bottom,
+    required double frameWidth,
+    required double frameHeight,
+  }) async {
+    List<double> fromLTRB = [left, top, right, bottom, frameWidth, frameHeight];
+    print('{{{{====================eedeeeee=======================}}}');
 
+    print(fromLTRB);
+    try {
+      // return _calculateDirection(fromLTRB);
+      return await compute(_calculateDirection, fromLTRB);
+    } catch (e) {
+      print('{{{{====================$e=======================}}}');
+      return DirectionStatus.unknown;
+    }
+  }
 
-  //!
-  Map<String, dynamic> calculateDirection(Recognition recognition) {
-    // Access the bounding box (location)
-    final Rect location = recognition.location;
+  DirectionStatus _calculateDirection(List<double> fromLTRB) {
+    final Rect location =
+        Rect.fromLTRB(fromLTRB[0], fromLTRB[1], fromLTRB[2], fromLTRB[3]);
 
-    // Get the object's center x-coordinate
+    // Get the object's center coordinates
     final double objectCenterX = location.left + (location.width / 2);
+    final double objectCenterY = location.top + (location.height / 2);
 
-    // Define frame width based on ScreenParams
-    final double frameWidth = ScreenParams.screenPreviewSize.width;
+    // Define frame dimensions based on ScreenParams
+    final double frameWidth = fromLTRB[4];
+    final double frameHeight = fromLTRB[5];
 
-    // Define thresholds for regions
+    // Define thresholds for horizontal regions
     const double leftThresholdFactor = 0.33;
     const double rightThresholdFactor = 0.66;
-
     final double leftThreshold = frameWidth * leftThresholdFactor;
     final double rightThreshold = frameWidth * rightThresholdFactor;
+
+    // Define thresholds for vertical regions
+    const double topThresholdFactor = 0.33;
+    const double bottomThresholdFactor = 0.66;
+    final double topThreshold = frameHeight * topThresholdFactor;
+    final double bottomThreshold = frameHeight * bottomThresholdFactor;
 
     // Define a center tolerance (range considered "center")
     const double centerToleranceFactor = 0.1;
     final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
     final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
+    final double centerTop = frameHeight * (0.5 - centerToleranceFactor);
+    final double centerBottom = frameHeight * (0.5 + centerToleranceFactor);
 
-    // Include distance-related logic using bounding box size
-    const double fartherThreshold = 0.1; // Smaller objects are farther away
-    const double closerThreshold = 0.3; // Larger objects are closer
-
-    final double objectSizeFactor = location.width / frameWidth;
-
-    // Check if the object is within the center tolerance first
-    if (objectCenterX >= centerLeft && objectCenterX <= centerRight) {
-      if (recognition.score > 0.8 && objectSizeFactor < fartherThreshold) {
-        return {
-          'message': 'Move farther',
-          'direction': DirectionStatus.farther
-        };
-      } else if (recognition.score > 0.66 &&
-          objectSizeFactor > closerThreshold) {
-        return {'message': 'Move closer', 'direction': DirectionStatus.closer};
-      } else {
-        return {
-          'message': 'Object is centered',
-          'direction': DirectionStatus.center
-        };
-      }
+    // Check if the object is within the center tolerance
+    if (objectCenterX >= centerLeft &&
+        objectCenterX <= centerRight &&
+        objectCenterY >= centerTop &&
+        objectCenterY <= centerBottom) {
+      return DirectionStatus.center;
     }
 
-    // If not centered, determine other directions
+    // If not centered, determine vertical and horizontal directions
+    if (objectCenterY < topThreshold) {
+      return DirectionStatus.up;
+    } else if (objectCenterY > bottomThreshold) {
+      return DirectionStatus.down;
+    }
+
     if (objectCenterX < leftThreshold) {
-      return {'message': 'Move left', 'direction': DirectionStatus.left};
+      return DirectionStatus.left;
     } else if (objectCenterX > rightThreshold) {
-      return {'message': 'Move right', 'direction': DirectionStatus.right};
+      return DirectionStatus.right;
     }
 
-    // Default fallback
-    return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
+    // Default fallback (should not usually reach here)
+    return DirectionStatus.unknown;
   }
-
 
 // Map<String,dynamic> _getDirection(Recognition recognition) {
 //   // Access the bounding box (location)
@@ -258,8 +274,6 @@ class Detector {
 //
 //   return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
 // }
-
-
 }
 
 /// This is where we use the new feature Background Isolate Channels, which
@@ -321,7 +335,6 @@ class _DetectorServer {
       }
     });
   }
-
 
   Map<String, dynamic> analyseImage(
       image_lib.Image? image, int preConversionTime) {
