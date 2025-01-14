@@ -37,9 +37,11 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
     return BlocBuilder<ObjectDetectionCubit, ObjectDetectionState>(
       bloc: context.read<ObjectDetectionCubit>(),
       builder: (context, state) {
+
         if (state.controller == null) {
           return const CircularProgressIndicator();
         }
+        debugPrint('===============>>>>>>>>>>>>>>>${state.direction}');
         if (state.status == ObjectDetectionStatus.detecting) {
           _guidanceMessage = state.objectName ?? '...';
         } else if (state.status == ObjectDetectionStatus.notInPosition) {
@@ -77,10 +79,10 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
         targetRotationAngle = pi / 2; // Arrow points to the right
         break;
       case DirectionStatus.up:
-        targetRotationAngle = -pi / 2; // Arrow points up (rotating -90 degrees)
+        targetRotationAngle = 0; // Arrow points up (rotating -90 degrees)
         break;
       case DirectionStatus.down:
-        targetRotationAngle = pi / 2; // Arrow points down (rotating +90 degrees)
+        targetRotationAngle = -pi ; // Arrow points down (rotating +90 degrees)
         break;
       case DirectionStatus.center:
       case DirectionStatus.unknown:
@@ -166,14 +168,19 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
                 offset.dx * _arrowController.value, // Apply animation value to translation
                 offset.dy * _arrowController.value,
               ),
-              child: Transform.rotate(
+              child:direction == DirectionStatus.center ?Icon(
+                Icons.camera,
+                size: 60,
+                color: Colors.red,
+              ): direction == DirectionStatus.unknown
+                  ?SizedBox.shrink() :  Transform.rotate(
                 angle: _rotationAngle,
                 child: Icon(
                   Icons.arrow_upward,
                   size: 60,
                   color: Colors.red,
                 ),
-              ),
+              )
             );
           },
         ),

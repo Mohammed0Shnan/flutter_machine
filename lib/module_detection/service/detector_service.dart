@@ -4,7 +4,6 @@ import 'dart:isolate';
 
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
-import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -120,160 +119,113 @@ class Detector {
     _isolate.kill();
   }
 
-  Future<DirectionStatus> calculateDirection({
+  DirectionStatus calculateDirection({
     required double left,
     required double top,
     required double right,
     required double bottom,
     required double frameWidth,
     required double frameHeight,
-  }) async {
-    List<double> fromLTRB = [left, top, right, bottom, frameWidth, frameHeight];
-    print('{{{{====================eedeeeee=======================}}}');
-
-    print(fromLTRB);
-    try {
-      // return _calculateDirection(fromLTRB);
-      return await compute(_calculateDirection, fromLTRB);
-    } catch (e) {
-      print('{{{{====================$e=======================}}}');
-      return DirectionStatus.unknown;
-    }
+    required double aspect,
+  }) {
+    List<double> fromLTRB = [left, top, right, bottom, frameWidth, frameHeight,aspect];
+    return _calculateDirection(fromLTRB);
   }
-
   DirectionStatus _calculateDirection(List<double> fromLTRB) {
-    final Rect location =
-        Rect.fromLTRB(fromLTRB[0], fromLTRB[1], fromLTRB[2], fromLTRB[3]);
-
-    // Get the object's center coordinates
+    final Rect location = Rect.fromLTRB(fromLTRB[0], fromLTRB[1], fromLTRB[2], fromLTRB[3]);
     final double objectCenterX = location.left + (location.width / 2);
     final double objectCenterY = location.top + (location.height / 2);
 
-    // Define frame dimensions based on ScreenParams
     final double frameWidth = fromLTRB[4];
     final double frameHeight = fromLTRB[5];
+    final double aspect = fromLTRB[6];
 
-    // Define thresholds for horizontal regions
-    const double leftThresholdFactor = 0.33;
-    const double rightThresholdFactor = 0.66;
-    final double leftThreshold = frameWidth * leftThresholdFactor;
-    final double rightThreshold = frameWidth * rightThresholdFactor;
+    final double adjustedFrameWidth = frameWidth * aspect;
+    final double adjustedFrameHeight = frameHeight;
 
-    // Define thresholds for vertical regions
-    const double topThresholdFactor = 0.33;
-    const double bottomThresholdFactor = 0.66;
-    final double topThreshold = frameHeight * topThresholdFactor;
-    final double bottomThreshold = frameHeight * bottomThresholdFactor;
+    const double centerToleranceFactor = 0.125;
+    final double centerLeft = adjustedFrameWidth * (0.5 - centerToleranceFactor);
+    final double centerRight = adjustedFrameWidth * (0.5 + centerToleranceFactor);
+    final double centerTop = adjustedFrameHeight * (0.5 - centerToleranceFactor);
+    final double centerBottom = adjustedFrameHeight * (0.5 + centerToleranceFactor);
 
-    // Define a center tolerance (range considered "center")
-    const double centerToleranceFactor = 0.1;
-    final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
-    final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
-    final double centerTop = frameHeight * (0.5 - centerToleranceFactor);
-    final double centerBottom = frameHeight * (0.5 + centerToleranceFactor);
-
-    // Check if the object is within the center tolerance
-    if (objectCenterX >= centerLeft &&
-        objectCenterX <= centerRight &&
-        objectCenterY >= centerTop &&
-        objectCenterY <= centerBottom) {
+    if (objectCenterX >= centerLeft && objectCenterX <= centerRight &&
+        objectCenterY >= centerTop && objectCenterY <= centerBottom) {
       return DirectionStatus.center;
     }
 
-    // If not centered, determine vertical and horizontal directions
-    if (objectCenterY < topThreshold) {
+    if (objectCenterY < adjustedFrameHeight * 0.25) {
       return DirectionStatus.up;
-    } else if (objectCenterY > bottomThreshold) {
+    } else if (objectCenterY > adjustedFrameHeight * 0.75) {
       return DirectionStatus.down;
     }
 
-    if (objectCenterX < leftThreshold) {
+    if (objectCenterX < adjustedFrameWidth * 0.25) {
       return DirectionStatus.left;
-    } else if (objectCenterX > rightThreshold) {
+    } else if (objectCenterX > adjustedFrameWidth * 0.75) {
       return DirectionStatus.right;
     }
 
-    // Default fallback (should not usually reach here)
     return DirectionStatus.unknown;
   }
 
-// Map<String,dynamic> _getDirection(Recognition recognition) {
-//   // Access the bounding box (location)
-//   final Rect location = recognition.location;
-//
-//   // Get the object's center x-coordinate
-//   final double objectCenterX = location.left + (location.width / 2);
-//
-//   // Define frame width based on ScreenParams
-//   final double frameWidth = ScreenParams.screenPreviewSize.width;
-//
-//   // Define thresholds for regions
-//   const double leftThresholdFactor = 0.33;
-//   const double rightThresholdFactor = 0.66;
-//
-//   final double leftThreshold = frameWidth * leftThresholdFactor;
-//   final double rightThreshold = frameWidth * rightThresholdFactor;
-//   print('===================> ${leftThreshold} <=======================');
-//   print('===================> ${rightThreshold} <=======================');
-//   print('===================> ${rightThreshold} <=======================');
-//   if (recognition.score > 0.8) {
-//     return {'message':'Move farther','direction':DirectionStatus.farther };
-//   }
-//  else if (recognition.score < 0.8 && recognition.score > 0.66 ) {
-//     return {'message':'Move closer','direction':DirectionStatus.closer };
-//   }
-//  else if (objectCenterX > leftThreshold) {
-//     return {'message':'Move right','direction':DirectionStatus.right };
-//   } else if (objectCenterX < rightThreshold) {
-//     return {'message':'Move left','direction':DirectionStatus.left };
-//   }
-//
-//   return {'message':'Move center','direction':DirectionStatus.center };
-//
-// }
-//
-// Map<String, dynamic> _getDirection(Recognition recognition) {
-//   // Access the bounding box (location)
-//   final Rect location = recognition.location;
-//
-//   // Get the object's center x-coordinate
-//   final double objectCenterX = location.left + (location.width / 2);
-//
-//   // Define frame width based on ScreenParams
-//   final double frameWidth = ScreenParams.screenPreviewSize.width;
-//
-//   // Define thresholds for regions
-//   const double leftThresholdFactor = 0.33;
-//   const double rightThresholdFactor = 0.66;
-//
-//   final double leftThreshold = frameWidth * leftThresholdFactor;
-//   final double rightThreshold = frameWidth * rightThresholdFactor;
-//
-//   // Define a center tolerance (range considered "center")
-//   const double centerToleranceFactor = 0.1;
-//   final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
-//   final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
-//
-//   // Include distance-related logic using bounding box size
-//   const double fartherThreshold = 0.1; // Smaller objects are farther away
-//   const double closerThreshold = 0.3; // Larger objects are closer
-//
-//   final double objectSizeFactor = location.width / frameWidth;
-//
-//   if (recognition.score > 0.8 && objectSizeFactor < fartherThreshold) {
-//     return {'message': 'Move farther', 'direction': DirectionStatus.farther};
-//   } else if (recognition.score > 0.66 && objectSizeFactor > closerThreshold) {
-//     return {'message': 'Move closer', 'direction': DirectionStatus.closer};
-//   } else if (objectCenterX >= centerLeft && objectCenterX <= centerRight) {
-//     return {'message': 'Object is centered', 'direction': DirectionStatus.center};
-//   } else if (objectCenterX < leftThreshold) {
-//     return {'message': 'Move left', 'direction': DirectionStatus.left};
-//   } else if (objectCenterX > rightThreshold) {
-//     return {'message': 'Move right', 'direction': DirectionStatus.right};
-//   }
-//
-//   return {'message': 'Adjust position', 'direction': DirectionStatus.unknown};
-// }
+  // DirectionStatus _calculateDirection(List<double> fromLTRB) {
+  //   final Rect location =
+  //       Rect.fromLTRB(fromLTRB[0], fromLTRB[1], fromLTRB[2], fromLTRB[3]);
+  //
+  //   // Get the object's center coordinates
+  //   final double objectCenterX = location.left + (location.width / 2);
+  //   final double objectCenterY = location.top + (location.height / 2);
+  //
+  //   // Define frame dimensions based on ScreenParams
+  //   final double frameWidth = fromLTRB[4];
+  //   final double frameHeight = fromLTRB[5];
+  //
+  //   // Define thresholds for horizontal regions
+  //   const double leftThresholdFactor = 0.33;
+  //   const double rightThresholdFactor = 0.66;
+  //   final double leftThreshold = frameWidth * leftThresholdFactor;
+  //   final double rightThreshold = frameWidth * rightThresholdFactor;
+  //
+  //   // Define thresholds for vertical regions
+  //   const double topThresholdFactor = 0.33;
+  //   const double bottomThresholdFactor = 0.66;
+  //   final double topThreshold = frameHeight * topThresholdFactor;
+  //   final double bottomThreshold = frameHeight * bottomThresholdFactor;
+  //
+  //   // Define a center tolerance (range considered "center")
+  //   const double centerToleranceFactor = 0.15;
+  //   final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
+  //   final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
+  //   final double centerTop = frameHeight * (0.5 - centerToleranceFactor);
+  //   final double centerBottom = frameHeight * (0.5 + centerToleranceFactor);
+  //
+  //   // Check if the object is within the center tolerance
+  //   if (objectCenterX >= centerLeft &&
+  //       objectCenterX <= centerRight &&
+  //       objectCenterY >= centerTop &&
+  //       objectCenterY <= centerBottom) {
+  //     return DirectionStatus.center;
+  //   }
+  //
+  //   // If not centered, determine vertical and horizontal directions
+  //   if (objectCenterY < topThreshold) {
+  //     return DirectionStatus.up;
+  //   } else if (objectCenterY > bottomThreshold) {
+  //     return DirectionStatus.down;
+  //   }
+  //
+  //   if (objectCenterX < leftThreshold) {
+  //     return DirectionStatus.left;
+  //   } else if (objectCenterX > rightThreshold) {
+  //     return DirectionStatus.right;
+  //   }
+  //
+  //   // Default fallback (should not usually reach here)
+  //   return DirectionStatus.unknown;
+  // }
+
+
 }
 
 /// This is where we use the new feature Background Isolate Channels, which

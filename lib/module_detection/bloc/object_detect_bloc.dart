@@ -69,18 +69,19 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   }
 
   // Handle object detection logic
-  void detectObject(Recognition recognition, double w, double h) async {
+  void detectObject({required Recognition recognition,required aspect,required double w,required double h}) async {
     if (_isObjectInPosition(recognition)) {
       emit(state.copyWith(
           status: ObjectDetectionStatus.inPosition,
           message: "Object in position!",
           direction: null));
     } else {
-      var res = await service.calculateDirection(
+      DirectionStatus res =  service.calculateDirection(
         left: recognition.location.left,
         right: recognition.location.right,
         top: recognition.location.top,
         bottom: recognition.location.bottom,
+        aspect: aspect,
         frameWidth: w,
         frameHeight: h,
       );

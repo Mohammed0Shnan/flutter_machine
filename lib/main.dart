@@ -8,10 +8,10 @@ import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final container = await AppComponent.create();
   return runApp(container.app);
-
 
 }
 

@@ -57,15 +57,25 @@ class _DetectorScreenState extends State<DetectorScreen>
 
   void _initStateAsync() async {
     _initializeCamera();
+
+    int lastFrameTime = 0;
+    const int frameIntervalMs = 100;
     Detector.start().then((instance) {
       setState(() {
         _detector = instance;
         widget.detectionBloc.initService(instance);
         _subscription = instance.resultsStream.stream.listen((values) {
-          setState(() {
-            results = values['recognitions'];
-            stats = values['stats'];
-          });
+          final currentTime = DateTime.now().millisecondsSinceEpoch;
+          if (currentTime - lastFrameTime < frameIntervalMs) {
+            return;
+          }
+          lastFrameTime = currentTime;
+          if (values['recognitions'] != results || values['stats'] != stats) {
+            setState(() {
+              results = values['recognitions'];
+              stats = values['stats'];
+            });
+          }
         });
       });
     });
@@ -118,8 +128,7 @@ class _DetectorScreenState extends State<DetectorScreen>
       return const SizedBox.shrink();
     }
 
-    // Calculate aspect ratio for the camera feed
-    var aspect = 1 / _cameraController!.value.aspectRatio;
+    var aspect = .9 / _cameraController!.value.aspectRatio;
 
     return MultiBlocProvider(
       providers: [
@@ -138,7 +147,7 @@ class _DetectorScreenState extends State<DetectorScreen>
               ),
               AspectRatio(
                 aspectRatio: aspect,
-                child: _buildBoundingBoxes(context),
+                child: _buildBoundingBoxes(context,aspect),
               ),
               Positioned(
                 bottom: 350,
@@ -150,7 +159,7 @@ class _DetectorScreenState extends State<DetectorScreen>
                 bottom: 0,
                 left: 0,
                 right: 0,
-                child: _statsWidget(),
+                child: _statsWidget(aspect),
               ),
             ],
           ),
@@ -159,11 +168,11 @@ class _DetectorScreenState extends State<DetectorScreen>
     );
   }
 
-  Widget _statsWidget() => (stats != null)
-      ? Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            color: Colors.white.withAlpha(150),
+  Widget _statsWidget(double aspect) => (stats != null)
+      ? AspectRatio(
+          aspectRatio:aspect *.1 ,
+          child: Align(
+            alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -177,7 +186,8 @@ class _DetectorScreenState extends State<DetectorScreen>
                               Text(
                                 "${e.key}  ",
                                 style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.w700),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700),
                               ),
                               Text(
                                 e.value,
@@ -199,6 +209,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   /// Returns Stack of bounding boxes
   Widget _buildBoundingBoxes(
     BuildContext context,
+      double aspect
   ) {
     if (results == null || _cameraController == null) {
       return const SizedBox.shrink();
@@ -207,9 +218,13 @@ class _DetectorScreenState extends State<DetectorScreen>
         results!.where((box) => box.label.trim() == selectedObject).toList();
     if (filteredResults.isNotEmpty) {
       widget.detectionBloc.detectObject(
+        recognition:
           filteredResults.first,
-          ScreenParams.screenPreviewSize.width,
-          ScreenParams.screenPreviewSize.height);
+          aspect: aspect,
+          h: ScreenParams.screenPreviewSize.height,
+          w:  ScreenParams.screenPreviewSize.width
+
+         );
     } else {
       widget.detectionBloc.objectNotDetected(selectedObject);
     }
