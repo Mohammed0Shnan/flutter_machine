@@ -29,7 +29,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
     _arrowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
-    )..repeat(reverse: true); // Continuous bounce effect
+    )..repeat(reverse: true);
   }
 
   @override
@@ -41,7 +41,6 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
         if (state.controller == null) {
           return const CircularProgressIndicator();
         }
-        debugPrint('===============>>>>>>>>>>>>>>>${state.direction}');
         if (state.status == ObjectDetectionStatus.detecting) {
           _guidanceMessage = state.objectName ?? '...';
         } else if (state.status == ObjectDetectionStatus.notInPosition) {
@@ -52,17 +51,11 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
           _captureImage(state.controller!);
         }
 
-        return Column(
-          children: [
-            if(state.direction != null )
-            _buildGuidanceMessage(_guidanceMessage),
-            Container(
-              color: Colors.black,
-              padding: const EdgeInsets.all(5),
-              child: const SizedBox.shrink(),
-            ),
-          ],
+        return state.direction != null ?
+          _buildGuidanceMessage(_guidanceMessage): SizedBox.shrink(
+
         );
+
       },
     );
 
@@ -73,10 +66,10 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
     // Set rotation angle based on direction
     switch (newDirection) {
       case DirectionStatus.left:
-        targetRotationAngle = -pi / 2; // Arrow points to the left
+        targetRotationAngle = -pi / 2;
         break;
       case DirectionStatus.right:
-        targetRotationAngle = pi / 2; // Arrow points to the right
+        targetRotationAngle = pi / 2;
         break;
       case DirectionStatus.up:
         targetRotationAngle = 0; // Arrow points up (rotating -90 degrees)
@@ -103,16 +96,16 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
 
     switch (direction) {
       case DirectionStatus.left:
-        horizontalOffset = -100;
+        horizontalOffset = -80;
         break;
       case DirectionStatus.right:
-        horizontalOffset = 100;
+        horizontalOffset = 80;
         break;
       case DirectionStatus.up:
-        verticalOffset = 100;
+        verticalOffset = 80;
         break;
       case DirectionStatus.down:
-        verticalOffset = -100;
+        verticalOffset = -80;
         break;
       case DirectionStatus.center:
       case DirectionStatus.unknown:
@@ -128,8 +121,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
   Future<void> _captureImage(CameraController controller) async {
     try {
       final image = await controller.takePicture();
-      print('===========> Photo Captured <===========');
-      _navigateToCapturedImageScreen(image);
+      // _navigateToCapturedImageScreen(image);
     } catch (e) {
       print("Error capturing image: $e");
     }
@@ -137,7 +129,6 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
 
   void _navigateToCapturedImageScreen(XFile image) {
     final file = File(image.path);
-    final objectType = "Object Type";
     final timestamp = DateTime.now().toString();
 
     Navigator.push(
@@ -145,7 +136,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
       MaterialPageRoute(
         builder: (context) => CapturedImageScreen(
           image: file,
-          objectType: objectType,
+          objectType: context.read<ObjectDetectionCubit>().state.objectName??'',
           timestamp: timestamp,
         ),
       ),
@@ -160,6 +151,15 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        const SizedBox(height: 10),
+        Text(
+          message,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         AnimatedBuilder(
           animation: _arrowController,
           builder: (context, child) {
@@ -184,15 +184,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
             );
           },
         ),
-        const SizedBox(height: 10),
-        Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+
       ],
     );
   }

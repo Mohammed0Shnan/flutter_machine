@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
-
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 import 'package:f_m/module_detection/models/recognition.dart';
@@ -47,10 +45,8 @@ class Detector {
   final StreamController<Map<String, dynamic>> resultsStream =
       StreamController<Map<String, dynamic>>();
 
-  /// Open the database at [path] and launch the server on a background isolate..
   static Future<Detector> start() async {
     final ReceivePort receivePort = ReceivePort();
-    // sendPort - To be used by service Isolate to send message to our ReceiverPort
     final Isolate isolate =
         await Isolate.spawn(_DetectorServer._run, receivePort.sendPort);
 
@@ -68,7 +64,6 @@ class Detector {
   static Future<Interpreter> _loadModel() async {
     final interpreterOptions = InterpreterOptions();
 
-    // Use XNNPACK Delegate
     if (Platform.isAndroid) {
       interpreterOptions.addDelegate(XNNPackDelegate());
     }
@@ -83,15 +78,12 @@ class Detector {
     return (await rootBundle.loadString(_labelPath)).split('\n');
   }
 
-  /// Starts CameraImage processing
   void processFrame(CameraImage cameraImage) {
     if (_isReady) {
       _sendPort.send(_Command(_Codes.detect, args: [cameraImage]));
     }
   }
 
-  /// Handler invoked when a message is received from the port communicating
-  /// with the database server.
   void _handleCommand(_Command command) {
     switch (command.code) {
       case _Codes.init:
@@ -141,9 +133,9 @@ class Detector {
     final double aspect = fromLTRB[6];
 
     final double adjustedFrameWidth = frameWidth * aspect;
-    final double adjustedFrameHeight = frameHeight;
+    final double adjustedFrameHeight = frameHeight* aspect;
 
-    const double centerToleranceFactor = 0.125;
+    const double centerToleranceFactor = 0.12;
     final double centerLeft = adjustedFrameWidth * (0.5 - centerToleranceFactor);
     final double centerRight = adjustedFrameWidth * (0.5 + centerToleranceFactor);
     final double centerTop = adjustedFrameHeight * (0.5 - centerToleranceFactor);
@@ -168,63 +160,6 @@ class Detector {
 
     return DirectionStatus.unknown;
   }
-
-  // DirectionStatus _calculateDirection(List<double> fromLTRB) {
-  //   final Rect location =
-  //       Rect.fromLTRB(fromLTRB[0], fromLTRB[1], fromLTRB[2], fromLTRB[3]);
-  //
-  //   // Get the object's center coordinates
-  //   final double objectCenterX = location.left + (location.width / 2);
-  //   final double objectCenterY = location.top + (location.height / 2);
-  //
-  //   // Define frame dimensions based on ScreenParams
-  //   final double frameWidth = fromLTRB[4];
-  //   final double frameHeight = fromLTRB[5];
-  //
-  //   // Define thresholds for horizontal regions
-  //   const double leftThresholdFactor = 0.33;
-  //   const double rightThresholdFactor = 0.66;
-  //   final double leftThreshold = frameWidth * leftThresholdFactor;
-  //   final double rightThreshold = frameWidth * rightThresholdFactor;
-  //
-  //   // Define thresholds for vertical regions
-  //   const double topThresholdFactor = 0.33;
-  //   const double bottomThresholdFactor = 0.66;
-  //   final double topThreshold = frameHeight * topThresholdFactor;
-  //   final double bottomThreshold = frameHeight * bottomThresholdFactor;
-  //
-  //   // Define a center tolerance (range considered "center")
-  //   const double centerToleranceFactor = 0.15;
-  //   final double centerLeft = frameWidth * (0.5 - centerToleranceFactor);
-  //   final double centerRight = frameWidth * (0.5 + centerToleranceFactor);
-  //   final double centerTop = frameHeight * (0.5 - centerToleranceFactor);
-  //   final double centerBottom = frameHeight * (0.5 + centerToleranceFactor);
-  //
-  //   // Check if the object is within the center tolerance
-  //   if (objectCenterX >= centerLeft &&
-  //       objectCenterX <= centerRight &&
-  //       objectCenterY >= centerTop &&
-  //       objectCenterY <= centerBottom) {
-  //     return DirectionStatus.center;
-  //   }
-  //
-  //   // If not centered, determine vertical and horizontal directions
-  //   if (objectCenterY < topThreshold) {
-  //     return DirectionStatus.up;
-  //   } else if (objectCenterY > bottomThreshold) {
-  //     return DirectionStatus.down;
-  //   }
-  //
-  //   if (objectCenterX < leftThreshold) {
-  //     return DirectionStatus.left;
-  //   } else if (objectCenterX > rightThreshold) {
-  //     return DirectionStatus.right;
-  //   }
-  //
-  //   // Default fallback (should not usually reach here)
-  //   return DirectionStatus.unknown;
-  // }
-
 
 }
 

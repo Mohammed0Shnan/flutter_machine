@@ -6,7 +6,6 @@ import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/detection_module.dart';
 import 'package:f_m/module_detection/screen/detector_screen.dart';
 import 'package:f_m/module_detection/screen/object_selection_screen.dart';
-import 'package:f_m/module_detection/service/detector_service.dart';
 import 'package:f_m/module_splash/screen/splash_screen.dart';
 import 'package:f_m/module_splash/splash_module.dart';
 

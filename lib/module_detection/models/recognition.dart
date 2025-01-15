@@ -13,6 +13,12 @@ class Recognition {
   double get score => _score;
   Rect get location => _location;
 
+  Recognition.nullObject()
+      : _id = -1,
+        _label = 'Unknown',
+        _score = 0.0,
+        _location = Rect.zero;
+
   Rect get renderLocation {
     final double scaleX = ScreenParams.screenPreviewSize.width / 300;
     final double scaleY = ScreenParams.screenPreviewSize.height / 300;
@@ -23,6 +29,7 @@ class Recognition {
       location.height * scaleY,
     );
   }
+
   // Convert the object to a Map for serialization
   Map<String, dynamic> toMap() {
     return {

@@ -27,25 +27,11 @@ class DetectorScreen extends StatefulWidget {
 class _DetectorScreenState extends State<DetectorScreen>
     with WidgetsBindingObserver {
   late String selectedObject;
-
-  /// List of available cameras
   late List<CameraDescription> cameras;
-
-  /// Controller
   CameraController? _cameraController;
-
-  // use only when initialized, so - not null
-
-  /// Object Detector is running on a background [Isolate]. This is nullable
-  /// because acquiring a [Detector] is an asynchronous operation. This
-  /// value is `null` until the detector is initialized.
   Detector? _detector;
   StreamSubscription? _subscription;
-
-  /// Results to draw bounding boxes
   List<Recognition>? results;
-
-  /// Realtime stats
   Map<String, String>? stats;
 
   @override
@@ -122,13 +108,14 @@ class _DetectorScreenState extends State<DetectorScreen>
   // }
   @override
   Widget build(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
     selectedObject = ModalRoute.of(context)!.settings.arguments as String;
 
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const SizedBox.shrink();
     }
 
-    var aspect = .9 / _cameraController!.value.aspectRatio;
+    var aspect = 1 / _cameraController!.value.aspectRatio;
 
     return MultiBlocProvider(
       providers: [
@@ -136,104 +123,115 @@ class _DetectorScreenState extends State<DetectorScreen>
         BlocProvider<CameraCubit>(create: (_) => widget.cameraBloc),
       ],
       child: Scaffold(
-        body: SizedBox(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              SizedBox.expand(),
-              AspectRatio(
-                aspectRatio: aspect,
-                child: CameraPreview(_cameraController!),
+        body: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SizedBox.expand(),
+            AspectRatio(
+              aspectRatio: aspect,
+              child: CameraPreview(_cameraController!),
+            ),
+
+            AspectRatio(
+              aspectRatio: aspect,
+              child: _buildBoundingBoxes(context, aspect),
+            ),
+
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: AspectRatio(
+                aspectRatio: aspect * 1.5 ,
+                child: Container(
+                  child: Column(
+                    children: [
+
+                      Container(
+                          height: 200,
+                          child: GuidanceWidget()),
+                      _statsWidget(aspect,size),
+                    ],
+                  ),
+                ),
               ),
-              AspectRatio(
-                aspectRatio: aspect,
-                child: _buildBoundingBoxes(context,aspect),
-              ),
-              Positioned(
-                bottom: 350,
-                left: 0,
-                right: 0,
-                child: GuidanceWidget(),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _statsWidget(aspect),
-              ),
-            ],
-          ),
+            ),
+            // Positioned(
+            //   bottom: size.height * .28,
+            //   left: 0,
+            //   right: 0,
+            //   child: GuidanceWidget(),
+            // ),
+            // Positioned(
+            //   bottom: 0,
+            //   left: 0,
+            //   right: 0,
+            //   child: _statsWidget(aspect,size),
+            // ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _statsWidget(double aspect) => (stats != null)
-      ? AspectRatio(
-          aspectRatio:aspect *.1 ,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: stats!.entries
-                    .map((e) => SizedBox(
-                          height: 40,
-                          width: double.infinity,
-                          child: Row(
-                            children: [
-                              Text(
-                                "${e.key}  ",
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700),
-                              ),
-                              Text(
-                                e.value,
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.red),
-                              )
-                            ],
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
-          ),
-        )
+  Widget _statsWidget(double aspect , Size size) => (stats != null)
+      ? Padding(
+        padding:  EdgeInsets.all(.02* size.height),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: stats!.entries
+              .map((e) => SizedBox(
+                    height: size.height * .03 ,
+                    width: double.infinity,
+                    child: Row(
+                      children: [
+                        Text(
+                          "${e.key}  ",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          e.value,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red),
+                        )
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+      )
       : const SizedBox.shrink();
 
-  /// Returns Stack of bounding boxes
-  Widget _buildBoundingBoxes(
-    BuildContext context,
-      double aspect
-  ) {
+  Widget _buildBoundingBoxes(BuildContext context, double aspect) {
     if (results == null || _cameraController == null) {
       return const SizedBox.shrink();
     }
-    final filteredResults =
-        results!.where((box) => box.label.trim() == selectedObject).toList();
-    if (filteredResults.isNotEmpty) {
+    Recognition? recognition = results!.firstWhere(
+        (box) => box.label.trim() == selectedObject,
+        orElse: () => Recognition.nullObject());
+    if (recognition.id != -1) {
       widget.detectionBloc.detectObject(
-        recognition:
-          filteredResults.first,
+          recognition: recognition,
           aspect: aspect,
           h: ScreenParams.screenPreviewSize.height,
-          w:  ScreenParams.screenPreviewSize.width
-
-         );
+          w: ScreenParams.screenPreviewSize.width);
     } else {
       widget.detectionBloc.objectNotDetected(selectedObject);
     }
+    final List<BoxWidget> filteredList = results!
+        .where((box) => box.label.trim() != selectedObject)
+        .map((box) => BoxWidget(result: box, withoutBox: true))
+        .toList();
+    if(recognition.id != -1){
+      filteredList.insert(0, BoxWidget(result: recognition,withoutBox: false,));
+    }
+
     return Stack(
-      children: filteredResults.map((box) => BoxWidget(result: box)).toList(),
+      children: filteredList,
     );
   }
 
-  /// Callback to receive each frame [CameraImage] perform inference on it
   void onLatestImageAvailable(CameraImage cameraImage) async {
     _detector?.processFrame(cameraImage);
   }

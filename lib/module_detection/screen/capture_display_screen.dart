@@ -6,7 +6,7 @@ class CapturedImageScreen extends StatelessWidget {
   final String objectType;
   final String timestamp;
 
-  const CapturedImageScreen({
+  const CapturedImageScreen({super.key,
     required this.image,
     required this.objectType,
     required this.timestamp,
