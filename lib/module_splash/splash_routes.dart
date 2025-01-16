@@ -1,3 +1,3 @@
 class SplashRoutes {
-  static const SPLASH_SCREEN = '/splash';
+  static const SPLASH_SCREEN = '/';
 }

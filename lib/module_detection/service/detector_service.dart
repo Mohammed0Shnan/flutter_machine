@@ -318,14 +318,8 @@ class _DetectorServer {
   List<List<Object>> _runInference(
     List<List<List<num>>> imageMatrix,
   ) {
-    // Set input tensor [1, 300, 300, 3]
     final input = [imageMatrix];
 
-    // Set output tensor
-    // Locations: [1, 10, 4]
-    // Classes: [1, 10],
-    // Scores: [1, 10],
-    // Number of detections: [1]
     final output = {
       0: [List<List<num>>.filled(10, List<num>.filled(4, 0))],
       1: [List<num>.filled(10, 0)],

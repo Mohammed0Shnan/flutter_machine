@@ -67,11 +67,36 @@ class _DetectorScreenState extends State<DetectorScreen>
     });
   }
 
+  //
+  // void _initializeCamera() async {
+  //   cameras = await availableCameras();
+  //   // cameras[0] for back-camera
+  //   _cameraController = CameraController(
+  //     cameras[0],
+  //     ResolutionPreset.low,
+  //     enableAudio: false,
+  //   )..initialize().then((_) async {
+  //       widget.cameraBloc.initializeCamera(_cameraController);
+  //       await _cameraController!.startImageStream(onLatestImageAvailable);
+  //       ScreenParams.previewSize = _cameraController!.value.previewSize!;
+  //       setState(() {});
+  //     });
+  // }
+
   void _initializeCamera() async {
     cameras = await availableCameras();
-    // cameras[0] for back-camera
+    final frontCameraIndex = cameras.indexWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.front,
+    );
+
+    if (frontCameraIndex == -1) {
+      print("No front camera found!");
+      return;
+    }
+
+    // Use the front camera
     _cameraController = CameraController(
-      cameras[0],
+      cameras[frontCameraIndex],
       ResolutionPreset.low,
       enableAudio: false,
     )..initialize().then((_) async {
@@ -82,126 +107,142 @@ class _DetectorScreenState extends State<DetectorScreen>
       });
   }
 
-  // void _initializeCamera() async {
-  //   cameras = await availableCameras();
-  //   final frontCameraIndex = cameras.indexWhere(
-  //         (camera) => camera.lensDirection == CameraLensDirection.front,
-  //   );
-  //
-  //   if (frontCameraIndex == -1) {
-  //     print("No front camera found!");
-  //     return;
-  //   }
-  //
-  //   // Use the front camera
-  //   _cameraController = CameraController(
-  //     cameras[frontCameraIndex],
-  //     ResolutionPreset.low,
-  //     enableAudio: false,
-  //   )..initialize().then((_) async {
-  //     widget.cameraBloc.initializeCamera(_cameraController);
-  //     await _cameraController!.startImageStream(onLatestImageAvailable);
-  //     ScreenParams.previewSize = _cameraController!.value.previewSize!;
-  //     setState(() {});
-  //   }
-  //   );
-  // }
   @override
   Widget build(BuildContext context) {
-    final Size size = MediaQuery.of(context).size;
     selectedObject = ModalRoute.of(context)!.settings.arguments as String;
 
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const SizedBox.shrink();
     }
 
-    var aspect = 1 / _cameraController!.value.aspectRatio;
+    var aspect = .9 / _cameraController!.value.aspectRatio;
 
     return MultiBlocProvider(
       providers: [
         BlocProvider<ObjectDetectionCubit>(create: (_) => widget.detectionBloc),
         BlocProvider<CameraCubit>(create: (_) => widget.cameraBloc),
       ],
-      child: Scaffold(
-        body: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            SizedBox.expand(),
-            AspectRatio(
-              aspectRatio: aspect,
-              child: CameraPreview(_cameraController!),
-            ),
+      child: SafeArea(
+        top: true,
+        child: Scaffold(
+          body: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox.expand(),
 
-            AspectRatio(
-              aspectRatio: aspect,
-              child: _buildBoundingBoxes(context, aspect),
-            ),
+              ///! Camera Preview
+              AspectRatio(
+                aspectRatio: aspect,
+                child: CameraPreview(_cameraController!),
+              ),
 
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: AspectRatio(
-                aspectRatio: aspect * 1.5 ,
-                child: Container(
-                  child: Column(
-                    children: [
+              ///! Bounding Box
+              AspectRatio(
+                aspectRatio: aspect,
+                child: _buildBoundingBoxes(context, aspect),
+              ),
 
-                      Container(
-                          height: 200,
-                          child: GuidanceWidget()),
-                      _statsWidget(aspect,size),
-                    ],
-                  ),
+              /// App Bar
+              Positioned(top: 0, left: 0, child: _appBar(context)),
+
+              /// Guidance And States
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: AspectRatio(
+                  aspectRatio: aspect * 1.65,
+                  child: Container(
+                    padding: EdgeInsets.all(8.0),
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(30),
+                              topRight: Radius.circular(30))),
+                      child: Column(
+                        children: [
+                          Expanded(flex: 3, child: GuidanceWidget()),
+                          Expanded(flex: 2, child: _statsWidget(aspect))
+                        ],
+                      )),
                 ),
               ),
-            ),
-            // Positioned(
-            //   bottom: size.height * .28,
-            //   left: 0,
-            //   right: 0,
-            //   child: GuidanceWidget(),
-            // ),
-            // Positioned(
-            //   bottom: 0,
-            //   left: 0,
-            //   right: 0,
-            //   child: _statsWidget(aspect,size),
-            // ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _statsWidget(double aspect , Size size) => (stats != null)
-      ? Padding(
-        padding:  EdgeInsets.all(.02* size.height),
-        child: Column(
+  Widget _statsWidget(double aspect) {
+    final Size size = MediaQuery.of(context).size;
+    return (stats != null)
+        ? Column(
           mainAxisSize: MainAxisSize.min,
           children: stats!.entries
-              .map((e) => SizedBox(
-                    height: size.height * .03 ,
-                    width: double.infinity,
-                    child: Row(
-                      children: [
-                        Text(
-                          "${e.key}  ",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700),
+              .map((e) => Row(
+                    children: [
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            "${e.key}  ",
+                            style: TextStyle(
+                                fontSize: .02 * size.height,
+                                fontWeight: FontWeight.w700),
+                          ),
                         ),
-                        Text(
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
                           e.value,
                           style: TextStyle(
-                              fontSize: 16,
+                              fontSize: .02 * size.height,
                               fontWeight: FontWeight.w700,
                               color: Colors.red),
-                        )
-                      ],
-                    ),
+                        ),
+                      )
+                    ],
                   ))
               .toList(),
-        ),
-      )
-      : const SizedBox.shrink();
+        )
+        : const SizedBox.shrink();
+  }
+
+  Widget _appBar(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
+    return Padding(
+      padding: EdgeInsets.all(8),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: Container(
+                decoration:
+                    BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                height: .05 *  size.height ,
+                width: .05 *  size.height,
+                child: Icon(Icons.arrow_back_ios_new)),
+          ),
+          SizedBox(
+            width: 16.0,
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              "Detection Screen  ",
+              style: TextStyle(
+                  fontSize: .03 * size.height,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildBoundingBoxes(BuildContext context, double aspect) {
     if (results == null || _cameraController == null) {
@@ -223,8 +264,13 @@ class _DetectorScreenState extends State<DetectorScreen>
         .where((box) => box.label.trim() != selectedObject)
         .map((box) => BoxWidget(result: box, withoutBox: true))
         .toList();
-    if(recognition.id != -1){
-      filteredList.insert(0, BoxWidget(result: recognition,withoutBox: false,));
+    if (recognition.id != -1) {
+      filteredList.insert(
+          0,
+          BoxWidget(
+            result: recognition,
+            withoutBox: false,
+          ));
     }
 
     return Stack(
@@ -240,7 +286,10 @@ class _DetectorScreenState extends State<DetectorScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     switch (state) {
       case AppLifecycleState.inactive:
-        _cameraController?.stopImageStream();
+        if(_cameraController!=null){
+          _cameraController!.stopImageStream();
+        }
+        widget.cameraBloc.initializeCamera(null);
         _detector?.stop();
         _subscription?.cancel();
         break;

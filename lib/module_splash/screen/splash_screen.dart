@@ -5,8 +5,8 @@ import 'package:f_m/module_splash/bloc/splash_bloc.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
-
-  const SplashScreen({super.key}
+  SpalshAnimationBloC spalshAnimationBloC ;
+   SplashScreen({super.key,required this.spalshAnimationBloC}
   );
  
   @override
@@ -17,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    spalshAnimationBloC.playAnimation();
+    widget.spalshAnimationBloC.playAnimation();
        WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _getNextRoute().then((route) async{
         Navigator.pushNamedAndRemoveUntil(context, route ,(r)=> false);
@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   void dispose() {
-    spalshAnimationBloC.close();
+    widget.spalshAnimationBloC.close();
     super.dispose();
   }
   @override

@@ -12,7 +12,8 @@ abstract class Mediator {
 }
 //! Concrete Mediator
 class MediatorImp implements Mediator {
-  final  Map<String , DetectionBaseBloc>  _blocs ={};
+  late final  Map<String , DetectionBaseBloc>  _blocs ;
+  MediatorImp() : _blocs = {};
 
   @override
   void notify(String event, Object? data, DetectionBaseBloc sender) {

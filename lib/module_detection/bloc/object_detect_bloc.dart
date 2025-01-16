@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/mediation_bloc.dart';
 import 'package:f_m/module_detection/models/recognition.dart';
-import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:f_m/module_detection/service/detector_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

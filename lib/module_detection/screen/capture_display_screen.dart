@@ -14,8 +14,22 @@ class CapturedImageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(title: Text("Captured Image")),
+      appBar: AppBar(
+        centerTitle: true,
+        title:  FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            "Captured Image",
+            style: TextStyle(
+                fontSize: .03 * size.height,
+                fontWeight: FontWeight.w700,
+                color: Colors.black),
+          ),
+        ),
+      ),
+
       body: Column(
         children: [
           Image.file(image),

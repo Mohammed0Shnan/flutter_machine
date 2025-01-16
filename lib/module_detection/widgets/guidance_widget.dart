@@ -121,7 +121,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget> with SingleTickerProvid
   Future<void> _captureImage(CameraController controller) async {
     try {
       final image = await controller.takePicture();
-      // _navigateToCapturedImageScreen(image);
+      _navigateToCapturedImageScreen(image);
     } catch (e) {
       print("Error capturing image: $e");
     }

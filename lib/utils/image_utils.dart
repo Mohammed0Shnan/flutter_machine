@@ -144,7 +144,6 @@ void convertNV21ToRGB(Uint8List yuvBytes, Uint8List vuBytes, int width,
   }
 }
 
-/// ROTATION changes - not working as need to be from the Exif (which is empty)
 
 Future<int> getExifRotation(CameraImage cameraImage) async {
   final exifData = await readExifFromBytes(cameraImage.planes[0].bytes);

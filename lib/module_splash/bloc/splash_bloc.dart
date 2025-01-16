@@ -1,4 +1,5 @@
-import 'package:bloc/bloc.dart';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SpalshAnimationBloC extends Cubit<bool>{
   bool play;
@@ -7,4 +8,3 @@ class SpalshAnimationBloC extends Cubit<bool>{
   reversAnimation()=> emit(false);
 }
 
-SpalshAnimationBloC spalshAnimationBloC = SpalshAnimationBloC(false);
