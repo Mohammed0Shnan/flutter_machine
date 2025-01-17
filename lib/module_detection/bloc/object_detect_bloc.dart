@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/mediation_bloc.dart';
 import 'package:f_m/module_detection/models/recognition.dart';
@@ -21,7 +22,7 @@ class ObjectDetectionState {
   final String? message;
   final DirectionStatus? direction;
   final CameraController? controller;
-  final File? capturedImage;
+  final Rect? boundingBox;
 
   ObjectDetectionState({
     required this.status,
@@ -29,7 +30,7 @@ class ObjectDetectionState {
     this.message,
     this.direction,
     this.controller,
-    this.capturedImage,
+    this.boundingBox,
   });
 
   ObjectDetectionState copyWith({
@@ -38,7 +39,7 @@ class ObjectDetectionState {
     String? message,
     DirectionStatus? direction,
     CameraController? controller,
-    File? capturedImage,
+    Rect? boundingBox,
   }) {
     return ObjectDetectionState(
       status: status ?? this.status,
@@ -46,7 +47,7 @@ class ObjectDetectionState {
       message: message ?? this.message,
       direction: direction ?? this.direction,
       controller: controller ?? this.controller,
-      capturedImage: capturedImage ?? this.capturedImage,
+      boundingBox: boundingBox ?? this.boundingBox,
     );
   }
 }
@@ -69,12 +70,7 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
 
   // Handle object detection logic
   void detectObject({required Recognition recognition,required aspect,required double w,required double h}) async {
-    if (_isObjectInPosition(recognition)) {
-      emit(state.copyWith(
-          status: ObjectDetectionStatus.inPosition,
-          message: "Object in position!",
-          direction: null));
-    } else {
+
       DirectionStatus res =  service.calculateDirection(
         left: recognition.location.left,
         right: recognition.location.right,
@@ -84,28 +80,40 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
         frameWidth: w,
         frameHeight: h,
       );
-      Map<String, dynamic> direction = {};
-      if (res == DirectionStatus.left) {
-        direction['message'] = "Move Left";
-      } else if (res == DirectionStatus.right) {
-        direction['message'] = "Move Right";
-      } else if (res == DirectionStatus.up) {
-        direction['message'] = "Move Up";
-      } else if (res == DirectionStatus.down) {
-        direction['message'] = "Move Down";
-      } else if (res == DirectionStatus.center) {
-        direction['message'] = "Is Centered";
-      } else {
-        direction['message'] = "Adjust Position";
+
+      if ( res == DirectionStatus.center) {
+        emit(state.copyWith(
+            status: ObjectDetectionStatus.inPosition,
+            boundingBox: recognition.location,
+            message: "Object in position!",
+            direction: res));
       }
-      direction['direction'] = res;
-      emit(state.copyWith(
-        status: ObjectDetectionStatus.notInPosition,
-        message: direction['message'],
-        direction: direction['direction'],
-      ));
+      else{
+        Map<String, dynamic> direction = {};
+        if (res == DirectionStatus.left) {
+          direction['message'] = "Move Left";
+        } else if (res == DirectionStatus.right) {
+          direction['message'] = "Move Right";
+        } else if (res == DirectionStatus.up) {
+          direction['message'] = "Move Up";
+        } else if (res == DirectionStatus.down) {
+          direction['message'] = "Move Down";
+        } else if (res == DirectionStatus.center) {
+          direction['message'] = "Close...";
+        }
+        else {
+          direction['message'] = "Adjust Position";
+        }
+        direction['direction'] = res == DirectionStatus.center?DirectionStatus.unknown:res;
+        emit(state.copyWith(
+          status: ObjectDetectionStatus.notInPosition,
+          message: direction['message'],
+          direction: direction['direction'],
+        ));
+      }
+
     }
-  }
+
 
   void objectNotDetected(String objectName) {
     emit(state.copyWith(
@@ -115,7 +123,7 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   }
 
   bool _isObjectInPosition(Recognition recognition) {
-    return recognition.score > 0.9;
+    return recognition.score > 0.8;
   }
 
   @override
