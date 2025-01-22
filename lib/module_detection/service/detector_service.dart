@@ -135,7 +135,7 @@ class Detector {
     final double adjustedFrameWidth = frameWidth * aspect;
     final double adjustedFrameHeight = frameHeight* aspect;
 
-    const double centerToleranceFactor = 0.125;
+    const double centerToleranceFactor = 0.13;
     final double centerLeft = adjustedFrameWidth * (0.5 - centerToleranceFactor);
     final double centerRight = adjustedFrameWidth * (0.5 + centerToleranceFactor);
     final double centerTop = adjustedFrameHeight * (0.5 - centerToleranceFactor);

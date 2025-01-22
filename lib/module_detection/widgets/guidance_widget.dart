@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/object_detect_bloc.dart';
 import 'package:f_m/module_detection/screen/capture_display_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'count_down_animation.dart';
 
 class GuidanceWidget extends StatefulWidget {
   const GuidanceWidget({super.key});
@@ -19,9 +21,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
   late DirectionStatus direction;
   late ObjectDetectionCubit detectBloc;
   String _guidanceMessage = "";
-  Timer? _inPositionTimer;
-  bool _isCapturingImage = false;
-  int _countdownValue = 2;
+
 
   @override
   void initState() {
@@ -32,93 +32,55 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
     _arrowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
-    )..repeat(reverse: true);
+    )
+      ..repeat(reverse: true)
+      ..addListener(() {
+        setState(() {});
+      });
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ObjectDetectionCubit, ObjectDetectionState>(
-      bloc: context.read<ObjectDetectionCubit>(),
-      builder: (context, state) {
-        if (state.controller == null) {
-          return const CircularProgressIndicator();
-        }
-
-        if (state.status == ObjectDetectionStatus.detecting) {
-          _guidanceMessage = state.objectName ?? '...';
-        } else if (state.status == ObjectDetectionStatus.notInPosition) {
-          _guidanceMessage = state.message ?? "Adjust position...";
-          _updateArrowDirection(state.direction!);
-        } else if (state.status == ObjectDetectionStatus.inPosition) {
-          _guidanceMessage = state.message ?? '';
-          _startInPositionTimer(state);
-        }
-
-        return state.direction != null
-            ? _buildGuidanceMessage(_guidanceMessage)
-            : SizedBox.shrink();
-      },
-    );
-  }
-
-  void _startInPositionTimer(ObjectDetectionState state) {
-
-    if (_inPositionTimer?.isActive ?? false) {
-      if(state.status != ObjectDetectionStatus.inPosition ){
-        _cancelInPositionTimer();
-        print('=======>>>>>>>>>>> status is changed');
-      }
-      return;
+    final state = context.watch<ObjectDetectionCubit>().state;
+    if (state.controller == null) {
+      return const CircularProgressIndicator();
     }
-
-    _inPositionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isCapturingImage) {
-        timer.cancel();
-        _cancelInPositionTimer();
-
-        return;
-      } else if (_countdownValue == 0) {
-        _isCapturingImage = true;
-        timer.cancel();
-        print('=======>>>>>>>>>>> image capturing');
-        // _captureImage(context,state);
-      } else {
-        _guidanceMessage = 'Capturing in';
-        --_countdownValue;
-      }
-    });
+     if (state.status == ObjectDetectionStatus.detecting) {
+      _guidanceMessage = '${state.objectName} detection...' ?? '';
+    } else if (state.status == ObjectDetectionStatus.notInPosition) {
+      _guidanceMessage = state.message ?? "Adjust position...";
+      _updateArrowDirection(state.direction!);
+    } else if (state.status == ObjectDetectionStatus.inPosition) {
+      _guidanceMessage ='${state.message}, don\'t move!'?? '';
+    }
+   return _buildGuidanceMessage(_guidanceMessage,state);
   }
 
-  void _cancelInPositionTimer() {
-    _countdownValue = 2;
-    _inPositionTimer?.cancel();
-  }
 
-  /// Captures the image and navigates to the next screen
-  Future<void> _captureImage(context,ObjectDetectionState state) async {
-
+  Future<void> _captureImage( {
+   required XFile image,
+   required  Rect boundingBox ,
+    required String objectName
+  }) async {
     try {
-      await state.controller?.pausePreview();
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => CapturedImageScreen(
-            controller: state.controller!,
-            boundingBox: state.boundingBox!,
-            objectName: state.objectName ?? '',
+            image: image,
+            boundingBox: boundingBox,
+            objectName: objectName,
           ),
         ),
       );
     } catch (e) {
-      print("Error capturing image: $e");
+      debugPrint("Error capturing image: $e");
     } finally {
-      _isCapturingImage = false;
     }
   }
 
   void _updateArrowDirection(DirectionStatus newDirection) {
     double targetRotationAngle = 0.0;
-
     // Set rotation angle based on direction
     switch (newDirection) {
       case DirectionStatus.left:
@@ -128,17 +90,16 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
         targetRotationAngle = pi / 2;
         break;
       case DirectionStatus.up:
-        targetRotationAngle = 0; // Arrow points up (rotating -90 degrees)
+        targetRotationAngle = 0;
         break;
       case DirectionStatus.down:
-        targetRotationAngle = -pi; // Arrow points down (rotating +90 degrees)
+        targetRotationAngle = -pi;
         break;
       case DirectionStatus.center:
       case DirectionStatus.unknown:
-        targetRotationAngle = 0.0; // No rotation
+        targetRotationAngle = 0.0;
         break;
     }
-
     // Update the rotation angle and direction
     _rotationAngle = targetRotationAngle;
     direction = newDirection;
@@ -147,7 +108,6 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
   Offset _calculateTranslation(DirectionStatus direction) {
     double horizontalOffset = 0.0;
     double verticalOffset = 0.0;
-
     switch (direction) {
       case DirectionStatus.left:
         horizontalOffset = -80;
@@ -167,13 +127,11 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
         verticalOffset = 0.0;
         break;
     }
-
     return Offset(horizontalOffset, verticalOffset);
   }
 
-  Widget _buildGuidanceMessage(String message) {
+  Widget _buildGuidanceMessage(String message,ObjectDetectionState state) {
     Offset offset = _calculateTranslation(direction);
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -186,6 +144,12 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
             fontWeight: FontWeight.bold,
           ),
         ),
+
+    state.status == ObjectDetectionStatus.inPosition?
+        CountdownAnimation(onCountdownComplete: ( ) async{
+          XFile? capturedImage = await state.controller?.takePicture();
+           _captureImage( image:capturedImage!,boundingBox: state.boundingBox!,objectName: state.objectName! );
+        },):
         AnimatedBuilder(
           animation: _arrowController,
           builder: (context, child) {
@@ -196,23 +160,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
               ),
               child: Hero(
                 tag: 'hero_camera_icon',
-                child: direction == DirectionStatus.center
-                    ? Column(
-                        children: [
-                          Row(
-                            children: [
-                              Text(message),
-                              Text(_countdownValue.toString()),
-                            ],
-                          ),
-                          Icon(
-                            Icons.camera,
-                            size: 60,
-                            color: Colors.red,
-                          ),
-                        ],
-                      )
-                    : direction == DirectionStatus.unknown
+                child: direction == DirectionStatus.unknown
                         ? SizedBox.shrink()
                         : Transform.rotate(
                             angle: _rotationAngle,
@@ -233,7 +181,9 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
   @override
   void dispose() {
     _arrowController.dispose();
-    _cancelInPositionTimer();
     super.dispose();
   }
 }
+
+
+

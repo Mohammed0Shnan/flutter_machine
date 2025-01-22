@@ -67,7 +67,8 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   initService(Detector service) {
     this.service = service;
   }
-
+  void setObjectName(String name)=>  emit(state.copyWith(
+     objectName: name));
   // Handle object detection logic
   void detectObject({required Recognition recognition,required aspect,required double w,required double h}) async {
 
@@ -85,7 +86,7 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
         emit(state.copyWith(
             status: ObjectDetectionStatus.inPosition,
             boundingBox: recognition.location,
-            message: "Object in position!",
+            message: "Object in position",
             direction: res));
       }
       else{
@@ -118,7 +119,7 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   void objectNotDetected(String objectName) {
     emit(state.copyWith(
       status: ObjectDetectionStatus.detecting,
-      objectName: "Detecting $objectName...",
+      objectName: objectName,
     ));
   }
 

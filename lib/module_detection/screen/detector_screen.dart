@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:f_m/module_detection/service/detector_service.dart';
+import 'package:f_m/module_detection/widgets/custom_app_bar.dart';
 import 'package:f_m/module_detection/widgets/guidance_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:f_m/module_detection/models/recognition.dart';
@@ -26,7 +27,7 @@ class DetectorScreen extends StatefulWidget {
 
 class _DetectorScreenState extends State<DetectorScreen>
     with WidgetsBindingObserver {
-  late String selectedObject;
+  late String? selectedObject;
   late List<CameraDescription> cameras;
   CameraController? _cameraController;
   Detector? _detector;
@@ -38,6 +39,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
     _initStateAsync();
   }
 
@@ -110,7 +112,9 @@ class _DetectorScreenState extends State<DetectorScreen>
   @override
   Widget build(BuildContext context) {
     selectedObject = ModalRoute.of(context)!.settings.arguments as String;
-
+   if(selectedObject != null){
+     widget.detectionBloc.setObjectName(selectedObject!);
+   }
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const SizedBox.shrink();
     }
@@ -119,8 +123,8 @@ class _DetectorScreenState extends State<DetectorScreen>
 
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ObjectDetectionCubit>(create: (_) => widget.detectionBloc),
-        BlocProvider<CameraCubit>(create: (_) => widget.cameraBloc),
+        BlocProvider<ObjectDetectionCubit>.value(value:  widget.detectionBloc),
+        BlocProvider<CameraCubit>.value(value:  widget.cameraBloc),
       ],
       child: SafeArea(
         top: true,
@@ -143,7 +147,7 @@ class _DetectorScreenState extends State<DetectorScreen>
               ),
 
               /// App Bar
-              Positioned(top: 0, left: 0, child: _appBar(context)),
+              Positioned(top: 0, left: 0, child: CustomAppBar(title: 'Detection Screen ')),
 
               /// Guidance And States
               Align(
@@ -209,40 +213,6 @@ class _DetectorScreenState extends State<DetectorScreen>
         : const SizedBox.shrink();
   }
 
-  Widget _appBar(BuildContext context) {
-    final Size size = MediaQuery.of(context).size;
-    return Padding(
-      padding: EdgeInsets.all(8),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: Container(
-                decoration:
-                    BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                height: .05 *  size.height ,
-                width: .05 *  size.height,
-                child: Icon(Icons.arrow_back_ios_new)),
-          ),
-          SizedBox(
-            width: 16.0,
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              "Detection Screen  ",
-              style: TextStyle(
-                  fontSize: .03 * size.height,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildBoundingBoxes(BuildContext context, double aspect) {
     if (results == null || _cameraController == null) {
@@ -258,7 +228,7 @@ class _DetectorScreenState extends State<DetectorScreen>
           h: ScreenParams.screenPreviewSize.height,
           w: ScreenParams.screenPreviewSize.width);
     } else {
-      widget.detectionBloc.objectNotDetected(selectedObject);
+      widget.detectionBloc.objectNotDetected(selectedObject!);
     }
     final List<BoxWidget> filteredList = results!
         .where((box) => box.label.trim() != selectedObject)
