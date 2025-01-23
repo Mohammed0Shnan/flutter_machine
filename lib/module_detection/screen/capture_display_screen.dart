@@ -10,11 +10,11 @@ class CapturedImageScreen extends StatefulWidget {
   final String objectName;
 
   const CapturedImageScreen({
+    super.key,
     required this.boundingBox,
     required this.objectName,
     required this.image,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   State<CapturedImageScreen> createState() => _CapturedImageScreenState();
@@ -32,48 +32,59 @@ class _CapturedImageScreenState extends State<CapturedImageScreen> {
 
   Future<void> _processImage() async {
     try {
-      // Load the image file
+      // Load the image from the file
       final imageFile = File(widget.image.path);
       final imageBytes = await imageFile.readAsBytes();
       final decodedImage = img.decodeImage(imageBytes);
 
       if (decodedImage != null) {
-        // Use the decoded image dimensions
         final imageWidth = decodedImage.width;
         final imageHeight = decodedImage.height;
 
-        // Scale factors to map bounding box to original image size
-        final scaleX = imageWidth / imageWidth; // This will always be 1.0
-        final scaleY = imageHeight / imageHeight; // This will always be 1.0
+        const padding = 10;
+        double cropX = widget.boundingBox.left - (4*padding);
+        double cropY = widget.boundingBox.top - padding;
+        double cropWidth = widget.boundingBox.width + 2 * padding;
+        double cropHeight = widget.boundingBox.height + 3 * padding;
 
-        // Calculate crop dimensions based on scaled bounding box
-        const padding = 10; // Adjust padding as needed
-        final cropX = (widget.boundingBox.left * scaleX - padding).clamp(0, imageWidth);
-        final cropY = (widget.boundingBox.top * scaleY - padding).clamp(0, imageHeight);
-        final cropWidth = (widget.boundingBox.width * scaleX + 2 * padding)
-            .clamp(0, imageWidth - cropX);
-        final cropHeight = (widget.boundingBox.height * scaleY + 2 * padding)
-            .clamp(0, imageHeight - cropY);
+        // Ensure crop dimensions do not exceed image boundaries
+        if (cropX < 0) {
+          cropX = 0;
+        }
+        if (cropY < 0) {
+          cropY = 0;
+        }
+        if (cropX + cropWidth > imageWidth) {
+          cropWidth = imageWidth - cropX;
+        }
+        if (cropY + cropHeight > imageHeight) {
+          cropHeight = imageHeight - cropY;
+        }
 
-        // Crop the image
-        final croppedImage = img.copyCrop(
-          decodedImage,
-          x: cropX.toInt(),
-          y: cropY.toInt(),
-          width: cropWidth.toInt(),
-          height: cropHeight.toInt(),
-        );
+        // Ensure the crop width and height are valid
+        if (cropWidth > 0 && cropHeight > 0) {
+          // Crop the image
+          final croppedImage = img.copyCrop(
+            decodedImage,
+            x: cropX.toInt(),
+            y: cropY.toInt(),
+            width: cropWidth.toInt(),
+            height: cropHeight.toInt(),
+          );
 
-        // Save the cropped image to a new file
-        final croppedImagePath =
-            '${imageFile.parent.path}/cropped_${imageFile.uri.pathSegments.last}';
-        final croppedFile = File(croppedImagePath)
-          ..writeAsBytesSync(img.encodeJpg(croppedImage));
+          // Save the cropped image to a new file
+          final croppedImagePath =
+              '${imageFile.parent.path}/cropped_${imageFile.uri.pathSegments.last}';
+          final croppedFile = File(croppedImagePath)
+            ..writeAsBytesSync(img.encodeJpg(croppedImage));
 
-        // Update state with the cropped image
-        setState(() {
-          _croppedImage = croppedFile;
-        });
+          // Update state with the cropped image
+          setState(() {
+            _croppedImage = croppedFile;
+          });
+        } else {
+          print("Error: Cropping dimensions are invalid.");
+        }
       } else {
         print("Error: Failed to decode image.");
       }
@@ -105,23 +116,20 @@ class _CapturedImageScreenState extends State<CapturedImageScreen> {
                 color: Colors.black,
               ),
             ),
-            SizedBox(height: size.height * 0.2),
+            SizedBox(height: size.height * 0.16),
             Center(
               child: _isProcessing
                   ? const CircularProgressIndicator()
                   : _croppedImage != null
-                  ? Hero(
-                tag: 'hero_camera_icon',
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    _croppedImage!,
-                    height: size.height * 0.3, // Dynamically sized
-                    width: size.width * 0.5,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              )
+                  ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      _croppedImage!,
+                      height: size.height * 0.5,
+                      width: size.width * 0.9,
+                      fit: BoxFit.cover,
+                    ),
+                  )
                   : const Text(
                 'Error processing image.',
                 style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),

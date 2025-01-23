@@ -26,7 +26,7 @@ class DetectorScreen extends StatefulWidget {
 }
 
 class _DetectorScreenState extends State<DetectorScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late String? selectedObject;
   late List<CameraDescription> cameras;
   CameraController? _cameraController;
@@ -34,13 +34,26 @@ class _DetectorScreenState extends State<DetectorScreen>
   StreamSubscription? _subscription;
   List<Recognition>? results;
   Map<String, String>? stats;
+  late bool _isFlashing;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
+    _isFlashing = false;
     _initStateAsync();
+  }
+
+  void _triggerFlashEffect() {
+    setState(() {
+      _isFlashing = true;
+    });
+
+    Timer(const Duration(seconds: 1), () {
+      setState(() {
+        _isFlashing = false;
+      });
+    });
   }
 
   void _initStateAsync() async {
@@ -68,7 +81,6 @@ class _DetectorScreenState extends State<DetectorScreen>
       });
     });
   }
-
 
   void _initializeCamera() async {
     cameras = await availableCameras();
@@ -112,65 +124,78 @@ class _DetectorScreenState extends State<DetectorScreen>
   @override
   Widget build(BuildContext context) {
     selectedObject = ModalRoute.of(context)!.settings.arguments as String;
-   if(selectedObject != null){
-     widget.detectionBloc.setObjectName(selectedObject!);
-   }
+    if (selectedObject != null) {
+      widget.detectionBloc.setObjectName(selectedObject!);
+    }
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return const SizedBox.shrink();
     }
 
-    var aspect = .9 / _cameraController!.value.aspectRatio;
+    var aspect = .95 / _cameraController!.value.aspectRatio;
 
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ObjectDetectionCubit>.value(value:  widget.detectionBloc),
-        BlocProvider<CameraCubit>.value(value:  widget.cameraBloc),
+        BlocProvider<ObjectDetectionCubit>.value(value: widget.detectionBloc),
+        BlocProvider<CameraCubit>.value(value: widget.cameraBloc),
       ],
-      child: SafeArea(
-        top: true,
-        child: Scaffold(
-          body: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              SizedBox.expand(),
+      child: BlocListener<ObjectDetectionCubit, ObjectDetectionState>(
+        listener: (context, state) {
+          if (state.status == ObjectDetectionStatus.imageCaptured) {
+            _triggerFlashEffect();
+          }
+        },
+        child: SafeArea(
+          top: true,
+          child: Scaffold(
+            body: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                SizedBox.expand(),
 
-              ///! Camera Preview
-              AspectRatio(
-                aspectRatio: aspect,
-                child: CameraPreview(_cameraController!),
-              ),
-
-              ///! Bounding Box
-              AspectRatio(
-                aspectRatio: aspect,
-                child: _buildBoundingBoxes(context, aspect),
-              ),
-
-              /// App Bar
-              Positioned(top: 0, left: 0, child: CustomAppBar(title: 'Detection Screen ')),
-
-              /// Guidance And States
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: AspectRatio(
-                  aspectRatio: aspect * 1.65,
-                  child: Container(
-                    padding: EdgeInsets.all(8.0),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(30),
-                              topRight: Radius.circular(30))),
-                      child: Column(
-                        children: [
-                          Expanded(flex: 3, child: GuidanceWidget()),
-                          Expanded(flex: 2, child: _statsWidget(aspect))
-                        ],
-                      )),
+                ///! Camera Preview
+                AspectRatio(
+                  aspectRatio: aspect,
+                  child: CameraPreview(_cameraController!),
                 ),
-              ),
-            ],
+
+                ///! Bounding Box
+                AspectRatio(
+                  aspectRatio: aspect,
+                  child: _buildBoundingBoxes(context, aspect),
+                ),
+
+                ///! App Bar
+                Positioned(
+                    top: 0,
+                    left: 0,
+                    child: CustomAppBar(title: 'Detection Screen ')),
+
+                ///! Guidance And States
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: AspectRatio(
+                    aspectRatio: aspect * 1.65,
+                    child: Container(
+                        padding: EdgeInsets.all(8.0),
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(30),
+                                topRight: Radius.circular(30))),
+                        child: Column(
+                          children: [
+                            Expanded(flex: 3, child: GuidanceWidget()),
+                            Expanded(flex: 2, child: _statsWidget(aspect))
+                          ],
+                        )),
+                  ),
+                ),
+
+                // Flash animation overlay
+                if (_isFlashing) _FlashEffect(duration: 1,)
+              ],
+            ),
           ),
         ),
       ),
@@ -181,38 +206,37 @@ class _DetectorScreenState extends State<DetectorScreen>
     final Size size = MediaQuery.of(context).size;
     return (stats != null)
         ? Column(
-          mainAxisSize: MainAxisSize.min,
-          children: stats!.entries
-              .map((e) => Row(
-                    children: [
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            "${e.key}  ",
-                            style: TextStyle(
-                                fontSize: .02 * size.height,
-                                fontWeight: FontWeight.w700),
+            mainAxisSize: MainAxisSize.min,
+            children: stats!.entries
+                .map((e) => Row(
+                      children: [
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              "${e.key}  ",
+                              style: TextStyle(
+                                  fontSize: .02 * size.height,
+                                  fontWeight: FontWeight.w700),
+                            ),
                           ),
                         ),
-                      ),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          e.value,
-                          style: TextStyle(
-                              fontSize: .02 * size.height,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.red),
-                        ),
-                      )
-                    ],
-                  ))
-              .toList(),
-        )
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            e.value,
+                            style: TextStyle(
+                                fontSize: .02 * size.height,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.red),
+                          ),
+                        )
+                      ],
+                    ))
+                .toList(),
+          )
         : const SizedBox.shrink();
   }
-
 
   Widget _buildBoundingBoxes(BuildContext context, double aspect) {
     if (results == null || _cameraController == null) {
@@ -256,7 +280,7 @@ class _DetectorScreenState extends State<DetectorScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     switch (state) {
       case AppLifecycleState.inactive:
-        if(_cameraController!=null){
+        if (_cameraController != null) {
           _cameraController!.stopImageStream();
         }
         widget.cameraBloc.initializeCamera(null);
@@ -278,5 +302,62 @@ class _DetectorScreenState extends State<DetectorScreen>
     _detector?.stop();
     _subscription?.cancel();
     super.dispose();
+  }
+}
+
+class _FlashEffect extends StatefulWidget {
+  final int duration;
+  const _FlashEffect({super.key, required this.duration});
+
+  @override
+  State<_FlashEffect> createState() => _FlashEffectState();
+}
+
+class _FlashEffectState extends State<_FlashEffect> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize the AnimationController
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: widget.duration),
+    );
+
+    // Start the animation
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If animation is complete, return an empty widget
+    if (_controller.status == AnimationStatus.completed) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          // Use the controller's value directly for opacity
+          double opacity = 1.0 - _controller.value;
+
+          return Opacity(
+            opacity: opacity,
+            child: Container(
+              color: Colors.white, // Flash color
+            ),
+          );
+        },
+      ),
+    );
   }
 }

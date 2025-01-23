@@ -69,6 +69,11 @@ class ObjectDetectionCubit extends Cubit<ObjectDetectionState>
   }
   void setObjectName(String name)=>  emit(state.copyWith(
      objectName: name));
+
+  capture()=>  emit(state.copyWith(
+      status: ObjectDetectionStatus.imageCaptured));
+
+
   // Handle object detection logic
   void detectObject({required Recognition recognition,required aspect,required double w,required double h}) async {
 

@@ -22,7 +22,6 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
   late ObjectDetectionCubit detectBloc;
   String _guidanceMessage = "";
 
-
   @override
   void initState() {
     super.initState();
@@ -45,23 +44,21 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
     if (state.controller == null) {
       return const CircularProgressIndicator();
     }
-     if (state.status == ObjectDetectionStatus.detecting) {
+    if (state.status == ObjectDetectionStatus.detecting) {
       _guidanceMessage = '${state.objectName} detection...' ?? '';
     } else if (state.status == ObjectDetectionStatus.notInPosition) {
       _guidanceMessage = state.message ?? "Adjust position...";
       _updateArrowDirection(state.direction!);
     } else if (state.status == ObjectDetectionStatus.inPosition) {
-      _guidanceMessage ='${state.message}, don\'t move!'?? '';
+      _guidanceMessage = '${state.message}, don\'t move!' ?? '';
     }
-   return _buildGuidanceMessage(_guidanceMessage,state);
+    return _buildGuidanceMessage(_guidanceMessage, state);
   }
 
-
-  Future<void> _captureImage( {
-   required XFile image,
-   required  Rect boundingBox ,
-    required String objectName
-  }) async {
+  Future<void> _captureImage(
+      {required XFile image,
+      required Rect boundingBox,
+      required String objectName}) async {
     try {
       Navigator.push(
         context,
@@ -75,8 +72,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
       );
     } catch (e) {
       debugPrint("Error capturing image: $e");
-    } finally {
-    }
+    } finally {}
   }
 
   void _updateArrowDirection(DirectionStatus newDirection) {
@@ -130,7 +126,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
     return Offset(horizontalOffset, verticalOffset);
   }
 
-  Widget _buildGuidanceMessage(String message,ObjectDetectionState state) {
+  Widget _buildGuidanceMessage(String message, ObjectDetectionState state) {
     Offset offset = _calculateTranslation(direction);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -144,36 +140,56 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
             fontWeight: FontWeight.bold,
           ),
         ),
+        state.status == ObjectDetectionStatus.inPosition
+            ? CountdownAnimation(
+                onCountdownComplete: () async {
+                  try{
+                    state.controller?.pausePreview();
+                    context.read<ObjectDetectionCubit>().capture();
+                    XFile? capturedImage = await state.controller?.takePicture();
+                    await state.controller?.resumePreview();
 
-    state.status == ObjectDetectionStatus.inPosition?
-        CountdownAnimation(onCountdownComplete: ( ) async{
-          XFile? capturedImage = await state.controller?.takePicture();
-           _captureImage( image:capturedImage!,boundingBox: state.boundingBox!,objectName: state.objectName! );
-        },):
-        AnimatedBuilder(
-          animation: _arrowController,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(
-                offset.dx * _arrowController.value,
-                offset.dy * _arrowController.value,
-              ),
-              child: Hero(
-                tag: 'hero_camera_icon',
-                child: direction == DirectionStatus.unknown
-                        ? SizedBox.shrink()
-                        : Transform.rotate(
-                            angle: _rotationAngle,
-                            child: Icon(
-                              Icons.arrow_upward,
-                              size: 60,
-                              color: Colors.red,
+                    _captureImage(
+                        image: capturedImage!,
+                        boundingBox: state.boundingBox!,
+                        objectName: state.objectName!);
+                  }catch(e){
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:   Text(
+                      "Error occurred while capturing, move to detect!",
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),));
+                  }
+
+                },
+              )
+            : AnimatedBuilder(
+                animation: _arrowController,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(
+                      offset.dx * _arrowController.value,
+                      offset.dy * _arrowController.value,
+                    ),
+                    child: Hero(
+                      tag: 'hero_camera_icon',
+                      child: direction == DirectionStatus.unknown
+                          ? SizedBox.shrink()
+                          : Transform.rotate(
+                              angle: _rotationAngle,
+                              child: Icon(
+                                Icons.arrow_upward,
+                                size: 60,
+                                color: Colors.red,
+                              ),
                             ),
-                          ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ],
     );
   }
@@ -184,6 +200,3 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
     super.dispose();
   }
 }
-
-
-
