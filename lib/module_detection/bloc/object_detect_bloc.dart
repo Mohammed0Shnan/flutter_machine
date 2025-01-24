@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/mediation_bloc.dart';

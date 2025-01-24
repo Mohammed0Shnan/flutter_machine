@@ -30,7 +30,6 @@ class Recognition {
     );
   }
 
-  // Convert the object to a Map for serialization
   Map<String, dynamic> toMap() {
     return {
       'location': {

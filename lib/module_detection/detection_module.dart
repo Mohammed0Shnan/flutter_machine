@@ -1,9 +1,7 @@
-
 import 'package:f_m/abstracts/module/my_module.dart';
 import 'package:f_m/module_detection/screen/detector_screen.dart';
 import 'package:f_m/module_detection/screen/object_selection_screen.dart';
 import 'package:flutter/material.dart';
-
 import 'detection_routes.dart';
 
 class DetectionModule extends MyModule {

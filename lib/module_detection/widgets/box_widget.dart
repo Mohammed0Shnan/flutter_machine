@@ -61,9 +61,6 @@ class _BoxWidgetState extends State<BoxWidget> {
       ),
     );
   }
-
-  // Function to check if the position has changed significantly
-  // Check if the distance between the old and new positions exceeds the threshold
   bool _hasPositionChanged(Rect oldLocation, Rect newLocation) {
     return (oldLocation.left - newLocation.left).abs() > widget.positionThreshold ||
         (oldLocation.top - newLocation.top).abs() > widget.positionThreshold;

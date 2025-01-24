@@ -1,8 +1,4 @@
-
-
-
 import 'package:f_m/main.dart';
-
 import 'app.component.inject.dart' as lib;
 
 abstract class AppComponent {

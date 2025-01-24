@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:camera/camera.dart';
 import 'package:f_m/module_detection/bloc/camera_cubit.dart';
 import 'package:f_m/module_detection/service/detector_service.dart';
@@ -10,7 +9,6 @@ import 'package:f_m/module_detection/models/recognition.dart';
 import 'package:f_m/module_detection/models/screen_params.dart';
 import 'package:f_m/module_detection/widgets/box_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../bloc/object_detect_bloc.dart';
 
 /// [DetectorWidget] sends each frame for inference

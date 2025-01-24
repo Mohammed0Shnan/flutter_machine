@@ -23,7 +23,6 @@ class CameraState {
     this.errorMessage,
   });
 
-  // Implementing the copyWith method
   CameraState copyWith({
     CameraStateEnum? state,
     CameraController? controller,
@@ -37,7 +36,6 @@ class CameraState {
   }
 }
 
-// CameraCubit
 class CameraCubit extends Cubit<CameraState> implements DetectionBaseBloc {
   final String flag = 'camera_cubit';
   final Mediator mediator;

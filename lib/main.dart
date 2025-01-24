@@ -2,13 +2,14 @@ import 'package:f_m/di/components/app.component.dart';
 import 'package:f_m/module_detection/detection_module.dart';
 import 'package:f_m/module_splash/splash_module.dart';
 import 'package:f_m/module_splash/splash_routes.dart';
-import 'package:f_m/utils/navigation_transation.dart';
+import 'package:f_m/utils/route_generate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
   ///! our app
   final container = await AppComponent.create();
   return runApp(container.app);
@@ -53,6 +54,4 @@ class _MyAppState extends State<MyApp> {
       onGenerateRoute: (settings) => onGenerateRoute(settings, routes),
     );
   }
-
-
 }

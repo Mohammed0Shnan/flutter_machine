@@ -60,6 +60,7 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
       required Rect boundingBox,
       required String objectName}) async {
     try {
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -144,16 +145,23 @@ class _GuidanceWidgetState extends State<GuidanceWidget>
             ? CountdownAnimation(
                 onCountdownComplete: () async {
                   try{
-                    state.controller?.pausePreview();
+                    print(')))))))))))))))111))))))))))))))))))))');
                     context.read<ObjectDetectionCubit>().capture();
-                    XFile? capturedImage = await state.controller?.takePicture();
-                    await state.controller?.resumePreview();
+                    await state.controller?.pausePreview();
+                    print('))))))))))))))))222)))))))))))))))))))');
 
+                    print(')))))))))))))))))333))))))))))))))))))');
+                    XFile? capturedImage = await state.controller?.takePicture();
+                    print(')))))))))))))))))4444))))))))))))))))))');
+                    await state.controller?.resumePreview();
+                    print(')))))))))))))))))5555))))))))))))))))))');
                     _captureImage(
                         image: capturedImage!,
                         boundingBox: state.boundingBox!,
                         objectName: state.objectName!);
                   }catch(e){
+                    print(')))))))eerrr)))$e))))))))))))))))))');
+
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:   Text(
                       "Error occurred while capturing, move to detect!",
                       style: const TextStyle(
